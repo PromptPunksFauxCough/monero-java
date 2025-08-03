@@ -1,74 +1,129 @@
-cmake_minimum_required(VERSION 3.4.1)
-
-if (WIN32)
-  add_definitions( "-D_GLIBCXX_USE_NANOSLEEP=1" )
-  add_definitions( "-DWIN32_LEAN_AND_MEAN" )
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wa,-mbig-obj -O2 -fPIC -std=c++14 -F/Library/Frameworks -pthread -lcrypto -lcrypt32 -lbcrypt") 
-else()
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -std=c++14 -F/Library/Frameworks -pthread")
-endif()
-
-#SET(CMAKE_C_COMPILER /path/to/c/compiler)
-#SET(CMAKE_CXX_COMPILER /path/to/cpp/compiler)
-
+cmake_minimum_required(VERSION 3.24)
 project(monero-java-jni)
 
-#############
-# System
-#############
+include(FetchContent)
+include(ExternalProject)
 
-set(MONERO_CPP "${CMAKE_SOURCE_DIR}/external/monero-cpp")
-message(STATUS MONERO_CPP : ${MONERO_CPP} : ${MONERO_CPP})
+if(WIN32)
+  add_definitions("-D_GLIBCXX_USE_NANOSLEEP=1")
+  add_definitions("-DWIN32_LEAN_AND_MEAN")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wa,-mbig-obj -O2 -fPIC -std=c++14 -F/Library/Frameworks -pthread -lcrypto -lcrypt32 -lbcrypt")
+else()
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -std=c++14 -F/Library/Frameworks -pthread")
+endif()
 
-set(MONERO_CPP_SRC "${MONERO_CPP}/src")
-set(MONERO_PROJECT ${MONERO_CPP}/external/monero-project)
-set(MONERO_PROJECT_SRC "${MONERO_PROJECT}/src")
-
-# check JAVA_HOME
 if(NOT DEFINED ENV{JAVA_HOME} OR "$ENV{JAVA_HOME}" STREQUAL "")
-  message(FATAL_ERROR "JAVA_HOME variable not set, for example: export JAVA_HOME=/path/to/jdk")
+  message(FATAL_ERROR "JAVA_HOME variable not set, e.g.: export JAVA_HOME=/path/to/jdk")
 endif()
 
-# TODO: remove TRUEs, how are APPLE, DEPENDS, etc initialized?
-if (TRUE OR HIDAPI_FOUND OR LibUSB_COMPILE_TEST_PASSED)
-  if (APPLE)
-    if(TRUE OR DEPENDS)
-      list(APPEND EXTRA_LIBRARIES "-framework Foundation -framework IOKit -framework AppKit")
-    else()
-      find_library(COREFOUNDATION CoreFoundation)
-      find_library(IOKIT IOKit)
-      find_library(APPKIT AppKit)
-      list(APPEND EXTRA_LIBRARIES ${IOKIT})
-      list(APPEND EXTRA_LIBRARIES ${COREFOUNDATION})
-      list(APPEND EXTRA_LIBRARIES ${APPKIT})
-    endif()
-  endif()
-  if (WIN32)
-    list(APPEND EXTRA_LIBRARIES setupapi)
-  endif()
+##########################
+# Monero-cpp fetch
+##########################
+set(MONERO_CPP_DIR "${CMAKE_SOURCE_DIR}/external/monero-cpp")
+set(MONERO_CPP_COMMIT "4e0268655f09e84653210506a6e320b51527434e")
+
+FetchContent_Declare(
+  monero_cpp_external
+  GIT_REPOSITORY https://github.com/woodser/monero-cpp
+  GIT_TAG ${MONERO_CPP_COMMIT}
+  SOURCE_DIR ${MONERO_CPP_DIR}
+)
+FetchContent_Populate(monero_cpp_external)
+
+##########################
+# Monero-project fetch
+##########################
+set(MONERO_PROJECT_DIR "${MONERO_CPP_DIR}/external/monero-project")
+set(MONERO_PROJECT_BUILD_DIR "${CMAKE_BINARY_DIR}/external/monero-build")
+set(MONERO_PROJECT_COMMIT "ec870e50706a29768a65f597155ed5c7ad7e6326")
+
+if(NOT EXISTS "${MONERO_PROJECT_DIR}/CMakeLists.txt")
+  message(STATUS "Fetching Monero into ${MONERO_PROJECT_DIR}...")
+  FetchContent_Declare(
+    monero
+    GIT_REPOSITORY https://github.com/monero-project/monero.git
+    GIT_TAG ${MONERO_PROJECT_COMMIT}
+    SOURCE_DIR ${MONERO_PROJECT_DIR}
+  )
+  set(FETCHCONTENT_UPDATES_DISCONNECTED ON)
+  FetchContent_Populate(monero)
 endif()
 
-message(STATUS EXTRA_LIBRARIES: ${EXTRA_LIBRARIES})
+ExternalProject_Add(monero_ext
+  SOURCE_DIR ${MONERO_PROJECT_DIR}
+  BINARY_DIR ${MONERO_PROJECT_DIR}/build/release
+  UPDATE_DISCONNECTED 1
+  CMAKE_ARGS
+    -DBUILD_SHARED_LIBS=OFF
+    -DBUILD_GUI=OFF
+    -DCMAKE_INSTALL_PREFIX=${MONERO_PROJECT_DIR}/build/install
+  BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --target wallet_api && ${CMAKE_COMMAND} --build <BINARY_DIR> --
+  INSTALL_COMMAND ""
+  BUILD_BYPRODUCTS ${MONERO_PROJECT_DIR}/build/release/lib/libwallet_api.a
+)
 
-############
-# Boost
-############
+# Register Monero libwallet_api statically from external build
+add_library(wallet_api STATIC IMPORTED GLOBAL)
+set_target_properties(wallet_api PROPERTIES
+  IMPORTED_LOCATION "${MONERO_PROJECT_DIR}/build/release/lib/libwallet_api.a"
+  INTERFACE_INCLUDE_DIRECTORIES "${MONERO_PROJECT_DIR}/src/wallet/api"
+)
+add_dependencies(wallet_api monero_ext)
 
+##########################
+# monero-cpp build
+##########################
+ExternalProject_Add(monero_cpp_build
+  SOURCE_DIR ${MONERO_CPP_DIR}
+  BINARY_DIR ${MONERO_CPP_DIR}/build
+  CMAKE_ARGS
+    -DCMAKE_BUILD_TYPE=Release
+    -DCMAKE_INSTALL_PREFIX=${MONERO_CPP_DIR}/install
+  UPDATE_COMMAND ""
+  PATCH_COMMAND ""
+  CONFIGURE_HANDLED_BY_BUILD ON
+)
+
+function(register_monero_cpp_lib name relpath)
+  add_library(${name} STATIC IMPORTED)
+  set_target_properties(${name} PROPERTIES
+    IMPORTED_LOCATION ${MONERO_PROJECT_BUILD_DIR}/build/${relpath}
+  )
+  add_dependencies(${name} monero_ext)
+endfunction()
+
+# Register Monero static libs (as needed)
+register_monero_cpp_lib(libwallet                lib/libwallet.a)
+
+add_library(monero-cpp SHARED IMPORTED GLOBAL)
+
+if(APPLE)
+  set_target_properties(monero-cpp PROPERTIES IMPORTED_LOCATION "${MONERO_CPP_DIR}/build/libmonero-cpp.dylib")
+elseif(WIN32)
+  set_target_properties(monero-cpp PROPERTIES
+    IMPORTED_LOCATION "${MONERO_CPP_DIR}/build/libmonero-cpp.dll"
+    IMPORTED_IMPLIB "${MONERO_CPP_DIR}/build/libmonero-cpp.dll.a"
+  )
+else()
+  set_target_properties(monero-cpp PROPERTIES IMPORTED_LOCATION "${MONERO_CPP_DIR}/build/libmonero-cpp.so")
+endif()
+
+add_dependencies(monero-cpp monero_cpp_build)
+
+##########################
+# Boost and OpenSSL
+##########################
 set(Boost_NO_BOOST_CMAKE 1)
 set(Boost_USE_MULTITHREADED ON)
 find_package(Boost 1.58 QUIET REQUIRED COMPONENTS chrono date_time filesystem program_options regex serialization wserialization system thread)
 message(STATUS "Using Boost include dir at ${Boost_INCLUDE_DIR}")
 
-############
-# OpenSSL
-############
-
-if (APPLE AND NOT IOS)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=default -std=c++14")
-  if (NOT OPENSSL_ROOT_DIR)
-      EXECUTE_PROCESS(COMMAND brew --prefix openssl
-        OUTPUT_VARIABLE OPENSSL_ROOT_DIR
-        OUTPUT_STRIP_TRAILING_WHITESPACE)
+if(APPLE AND NOT IOS)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=default")
+  if(NOT OPENSSL_ROOT_DIR)
+    execute_process(COMMAND brew --prefix openssl
+      OUTPUT_VARIABLE OPENSSL_ROOT_DIR
+      OUTPUT_STRIP_TRAILING_WHITESPACE)
     message(STATUS "Using OpenSSL found at ${OPENSSL_ROOT_DIR}")
   endif()
 endif()
@@ -76,94 +131,85 @@ endif()
 find_package(OpenSSL REQUIRED)
 message(STATUS "Using OpenSSL include dir at ${OPENSSL_INCLUDE_DIR}")
 
-if(STATIC AND NOT IOS)
-  if(UNIX)
-    set(OPENSSL_LIBRARIES "${OPENSSL_LIBRARIES};${CMAKE_DL_LIBS};${CMAKE_THREAD_LIBS_INIT}")
-  endif()
+if(STATIC AND NOT IOS AND UNIX)
+  set(OPENSSL_LIBRARIES "${OPENSSL_LIBRARIES};${CMAKE_DL_LIBS};${CMAKE_THREAD_LIBS_INIT}")
 endif()
 
-if (WIN32)
+if(WIN32)
   list(APPEND OPENSSL_LIBRARIES ws2_32 crypt32 bcrypt)
 endif()
 
-######################
-# monero-cpp
-######################
-
-add_library(monero-cpp SHARED IMPORTED)
-
-# import shared c++ library
-if (APPLE)
-  set_target_properties(monero-cpp PROPERTIES IMPORTED_LOCATION ./libmonero-cpp.dylib)
-elseif (WIN32)
-  set_target_properties(monero-cpp PROPERTIES IMPORTED_LOCATION ./libmonero-cpp.dll)
-  set_target_properties(monero-cpp PROPERTIES IMPORTED_IMPLIB ./libmonero-cpp.dll.a)
-else()
-  set_target_properties(monero-cpp PROPERTIES IMPORTED_LOCATION ./libmonero-cpp.so)
+##########################
+# Platform extras
+##########################
+set(EXTRA_LIBRARIES "")
+if(APPLE)
+  find_library(COREFOUNDATION CoreFoundation)
+  find_library(IOKIT IOKit)
+  find_library(APPKIT AppKit)
+  list(APPEND EXTRA_LIBRARIES ${COREFOUNDATION} ${IOKIT} ${APPKIT})
+elseif(WIN32)
+  list(APPEND EXTRA_LIBRARIES setupapi)
 endif()
 
-###############################################
-# Build Java dynamic library for JNI
-###############################################
-
-set(
-    MONERO_JNI_SRC_FILES
-    src/main/cpp/monero_jni_bridge.cpp
-)
+##########################
+# JNI library setup
+##########################
+set(MONERO_JNI_SRC_FILES src/main/cpp/monero_jni_bridge.cpp)
 add_library(monero-java SHARED ${MONERO_JNI_SRC_FILES})
 
 target_include_directories(monero-java PUBLIC
   "$ENV{JAVA_HOME}"
   "$ENV{JAVA_HOME}/include"
-  "${MONERO_CPP}/external/libsodium/include/sodium"
-  "${MONERO_CPP}/external/openssl-sdk/include"
-  "${MONERO_CPP_SRC}/"
-  "${MONERO_PROJECT}/contrib/epee/include"
-  "${MONERO_PROJECT}/external/"
-  "${MONERO_PROJECT}/external/easylogging++"
-  "${MONERO_PROJECT}/external/rapidjson/include"
-  "${MONERO_PROJECT_SRC}/"
-  "${MONERO_PROJECT_SRC}/crypto"
-  "${MONERO_PROJECT_SRC}/crypto/crypto_ops_builder/include/"
-  "${MONERO_PROJECT_SRC}/wallet"
-  "${MONERO_PROJECT_SRC}/wallet/api"
-  ${Boost_INCLUDE_DIR}
-  ${OPENSSL_INCLUDE_DIR}
+  "${Boost_INCLUDE_DIR}"
+  "${OPENSSL_INCLUDE_DIR}"
+  "${MONERO_CPP_DIR}/external/libsodium/include/sodium"
+  "${MONERO_CPP_DIR}/external/openssl-sdk/include"
+  "${MONERO_CPP_DIR}/src"
+  "${MONERO_PROJECT_DIR}/contrib/epee/include"
+  "${MONERO_PROJECT_DIR}/external"
+  "${MONERO_PROJECT_DIR}/external/easylogging++"
+  "${MONERO_PROJECT_DIR}/external/rapidjson/include"
+  "${MONERO_PROJECT_DIR}/src"
+  "${MONERO_PROJECT_DIR}/src/crypto"
+  "${MONERO_PROJECT_DIR}/src/crypto/crypto_ops_builder/include"
+  "${MONERO_PROJECT_DIR}/src/wallet"
+  "${MONERO_PROJECT_DIR}/src/wallet/api"
 )
 
-if (APPLE)
+if(APPLE)
   target_include_directories(monero-java PUBLIC "$ENV{JAVA_HOME}/include/darwin")
-elseif (WIN32)
+elseif(WIN32)
   target_include_directories(monero-java PUBLIC "$ENV{JAVA_HOME}/include/win32")
 else()
   target_include_directories(monero-java PUBLIC "$ENV{JAVA_HOME}/include/linux")
 endif()
 
 target_link_libraries(monero-java
-    monero-cpp
-    ${Boost_LIBRARIES}
-    ${OPENSSL_LIBRARIES}
-    ${EXTRA_LIBRARIES}
+  monero-cpp
+  wallet_api
+  ${Boost_LIBRARIES}
+  ${OPENSSL_LIBRARIES}
+  ${EXTRA_LIBRARIES}
 )
 
-if (WIN32)
+if(WIN32)
   target_link_options(monero-java PUBLIC "-Wl,--enable-auto-import,--export-all-symbols")
 endif()
 
-if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    target_link_options(monero-java PRIVATE "-z" "noexecstack")
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  target_link_options(monero-java PRIVATE "-z" "noexecstack")
 endif()
 
-INSTALL(TARGETS monero-java
+install(TARGETS monero-java
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Runtime
-  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Development)
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Development
+)
 
-# search for libmonero-cpp.dylib in same directory as libmonero-java.dylib on mac for portability
-# command: install_name_tool -add_rpath @loader_path/ ./libmonero-java.dylib 
-if (APPLE)
-    add_custom_command(TARGET monero-java 
-        POST_BUILD COMMAND 
-        ${CMAKE_INSTALL_NAME_TOOL} -add_rpath "@loader_path/"
-        $<TARGET_FILE:monero-java>)
+if(APPLE)
+  add_custom_command(TARGET monero-java
+    POST_BUILD COMMAND
+    ${CMAKE_INSTALL_NAME_TOOL} -add_rpath "@loader_path/" $<TARGET_FILE:monero-java>
+  )
 endif()
