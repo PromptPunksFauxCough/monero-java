@@ -1,7 +1,7 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
 index 11f48c9..892a0bc 100644
---- a/monero-cpp/CMakeLists.txt
-+++ b/monero-cpp_new/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
 @@ -21,6 +21,7 @@ set(BUILD_LIBRARY ON)
  set(BUILD_SAMPLE OFF)
  set(BUILD_SCRATCHPAD OFF)
