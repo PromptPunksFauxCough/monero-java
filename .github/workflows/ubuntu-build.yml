@@ -40,12 +40,21 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-apt-
 
-    - name: Configure and build
+    - name: Configure and build (with debug flags)
       run: |
         mkdir -p build-ubuntu
         cd build-ubuntu
-        cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=OFF
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=OFF -DCMAKE_FIND_DEBUG_MODE=ON
         cmake --build . --parallel 1
+      env:
+        ACTIONS_STEP_DEBUG: true
+
+#    - name: Configure and build
+#      run: |
+#        mkdir -p build-ubuntu
+#        cd build-ubuntu
+#        cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=OFF
+#        cmake --build . --parallel 1
 
     - name: Prepare and package release artifacts
       # This step will only run if the workflow was triggered by a release
