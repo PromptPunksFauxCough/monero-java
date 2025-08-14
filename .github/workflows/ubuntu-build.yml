@@ -34,7 +34,8 @@ jobs:
 
     - name: Inspect libunbound-dev package
       run: |
-        dpkg -L libunbound-dev libunbound8 unbound
+        #dpkg -L libunbound-dev libunbound8 unbound
+        dpkg -L libhidapi-dev libhidapi-hidraw0 libhidapi-libusb0
 
     - name: Cache APT dependencies
       uses: actions/cache@v3
