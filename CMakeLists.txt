@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.24)
 project(monero-java-jni)
 
+option(BUILD_STATIC "Build a monolithic JNI wrapper that statically links monero-cpp and all its dependencies." OFF)
+
 include(FetchContent)
 include(ExternalProject)
 
@@ -120,6 +122,7 @@ ExternalProject_Add(monero_cpp_build
   CMAKE_ARGS
     # General Build Options
     -DCMAKE_BUILD_TYPE=Release
+    -DBUILD_STATIC=${BUILD_STATIC}
     -DCMAKE_INSTALL_PREFIX=${MONERO_CPP_DIR}/install
 
     # Dependency Root Directories
@@ -165,7 +168,8 @@ ExternalProject_Add(monero_cpp_build
     -DMONERO_PROJECT_BUILD=${MONERO_PROJECT_DIR}/build/release
 
   UPDATE_COMMAND ""
-  PATCH_COMMAND ""
+#  PATCH_COMMAND ""
+  PATCH_COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/patches/monero-cpp.patch ${MONERO_CPP_DIR} && patch -p1 -d ${MONERO_CPP_DIR} -i ${MONERO_CPP_DIR}/monero-cpp.patch
   CONFIGURE_HANDLED_BY_BUILD ON
 )
 
