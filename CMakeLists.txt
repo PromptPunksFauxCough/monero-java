@@ -93,6 +93,7 @@ ExternalProject_Add(monero_ext
     -DLIBUNWIND_LIBRARIES=${LIBUNWIND_LIBRARIES}
     -DLIBUNWIND_INCLUDE_DIR=${LIBUNWIND_INCLUDE_DIR}
     -DBacktrace_LIBRARY=${Backtrace_LIBRARY}
+    -DBacktrace_LIBRARIES=${Backtrace_LIBRARIES}
     -DBacktrace_INCLUDE_DIR=${Backtrace_INCLUDE_DIR}
     -DProtobuf_PROTOC_EXECUTABLE=${Protobuf_PROTOC_EXECUTABLE}
     -DProtobuf_LIBRARY=${Protobuf_LIBRARY}
@@ -156,6 +157,7 @@ ExternalProject_Add(monero_cpp_build
     -DLIBUNWIND_LIBRARIES=${LIBUNWIND_LIBRARIES}
     -DLIBUNWIND_INCLUDE_DIR=${LIBUNWIND_INCLUDE_DIR}
     -DBacktrace_LIBRARY=${Backtrace_LIBRARY}
+    -DBacktrace_LIBRARIES=${Backtrace_LIBRARIES}
     -DBacktrace_INCLUDE_DIR=${Backtrace_INCLUDE_DIR}
     -DProtobuf_ROOT_DIR=${Protobuf_ROOT_DIR}
     -DProtobuf_PROTOC_EXECUTABLE=${Protobuf_PROTOC_EXECUTABLE}
