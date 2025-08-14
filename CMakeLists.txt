@@ -104,7 +104,6 @@ endif()
 
 find_package(HIDAPI REQUIRED)
 message(STATUS "Using HIDAPI include dir at ${HIDAPI_INCLUDE_DIR}")
-add_definitions(-DHAVE_HIDAPI)
 
 ##########################
 # Monero-cpp fetch
