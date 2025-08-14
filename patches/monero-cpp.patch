@@ -1,0 +1,71 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 11f48c9..6e1e256 100644
+--- a/monero-cpp/CMakeLists.txt
++++ b/monero-cpp_new/CMakeLists.txt
+@@ -21,6 +21,7 @@ set(BUILD_LIBRARY ON)
+ set(BUILD_SAMPLE OFF)
+ set(BUILD_SCRATCHPAD OFF)
+ set(BUILD_TESTS OFF)
++option(BUILD_STATIC "Build monero-cpp as a static library" OFF)
+ 
+ ###################
+ # monero-project
+@@ -162,23 +163,26 @@ set_target_properties(epee PROPERTIES IMPORTED_LOCATION
+ # Unbound
+ ############
+ 
+-find_package(Unbound)
+-if(NOT UNBOUND_INCLUDE_DIR)
+-  message(FATAL_ERROR "Could not find libunbound")
+-else()
+-  message(STATUS "Found libunbound include (unbound.h) in ${UNBOUND_INCLUDE_DIR}")
+-  if(UNBOUND_LIBRARIES)
+-    message(STATUS "Found libunbound library")
+-    if (WIN32)
+-      add_library(unbound STATIC IMPORTED)
+-    else()
+-      add_library(unbound SHARED IMPORTED)
+-    endif()
+-    set_target_properties(unbound PROPERTIES IMPORTED_LOCATION ${UNBOUND_LIBRARIES}) 
+-  else()
+-    message(FATAL_ERROR "Found libunbound includes, but could not find libunbound library. Please make sure you have installed libunbound or libunbound-dev or the equivalent")
+-  endif()
+-endif()
++#find_package(Unbound)
++#if(NOT UNBOUND_INCLUDE_DIR)
++#  message(FATAL_ERROR "Could not find libunbound")
++#else()
++#  message(STATUS "Found libunbound include (unbound.h) in ${UNBOUND_INCLUDE_DIR}")
++#  if(UNBOUND_LIBRARIES)
++#    message(STATUS "Found libunbound library")
++#    if (WIN32)
++#      add_library(unbound STATIC IMPORTED)
++#    else()
++#      add_library(unbound SHARED IMPORTED)
++#    endif()
++#    set_target_properties(unbound PROPERTIES IMPORTED_LOCATION ${UNBOUND_LIBRARIES}) 
++#  else()
++#    message(FATAL_ERROR "Found libunbound includes, but could not find libunbound library. Please make sure you have installed libunbound or libunbound-dev or the equivalent")
++#  endif()
++#endif()
++
++find_library(unbound_LIBRARY NAMES unbound libunbound)
++set(UNBOUND_LIBRARIES ${unbound_LIBRARY})
+ 
+ add_library(rpc_base STATIC IMPORTED)
+ set_target_properties(rpc_base PROPERTIES IMPORTED_LOCATION
+@@ -280,7 +284,13 @@ set(
+ )
+ 
+ if (BUILD_LIBRARY)
+-  add_library(monero-cpp SHARED ${LIBRARY_SRC_FILES})
++#  add_library(monero-cpp SHARED ${LIBRARY_SRC_FILES})
++
++  if (BUILD_STATIC)
++    add_library(monero-cpp STATIC ${LIBRARY_SRC_FILES})
++  else()
++    add_library(monero-cpp SHARED ${LIBRARY_SRC_FILES})
++  endif()
+ 
+   target_include_directories(monero-cpp PUBLIC
+       ${CMAKE_CURRENT_SOURCE_DIR}/include
