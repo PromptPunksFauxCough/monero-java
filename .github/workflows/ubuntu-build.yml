@@ -1,0 +1,90 @@
+name: Ubuntu Release
+
+on:
+  push:
+    branches:
+      - '**' # This runs the workflow for every push to any branch
+  release:
+    types: [published]
+
+jobs:
+  build-ubuntu:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v4
+      with:
+        submodules: false
+
+    - name: Use CMake 3.24
+      uses: lukka/get-cmake@latest
+      with:
+        cmakeVersion: "3.24.0"
+
+    - name: Setup JDK
+      uses: actions/setup-java@v4
+      with:
+        distribution: "liberica"
+        java-version: "21"
+
+    - name: Install dependencies via apt-get
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential libboost-all-dev libssl-dev libzmq3-dev libsodium-dev libunbound-dev liblzma-dev libreadline-dev libexpat1-dev qttools5-dev libhidapi-dev libusb-1.0-0-dev libprotobuf-dev doxygen graphviz libtool gperf libevent-dev pkg-config
+
+    - name: Cache APT dependencies
+      uses: actions/cache@v3
+      with:
+        path: /var/cache/apt/archives
+        key: ${{ runner.os }}-apt-${{ hashFiles('**/apt-packages.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-apt-
+
+    - name: Configure and build
+      run: |
+        mkdir -p build-ubuntu
+        cd build-ubuntu
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON
+        cmake --build . --parallel 1
+
+    - name: Prepare and package release artifacts
+      # This step will only run if the workflow was triggered by a release
+      if: github.event_name == 'release'
+      run: |
+        # Create a directory for the final artifacts
+        mkdir -p dist/ubuntu-22.04
+        
+        # Copy the monero-java library to the distribution directory
+        cp build-ubuntu/libmonero-java.so dist/ubuntu-22.04/
+
+        # Copy the monero-cpp library from its specific build location
+        # cp external/monero-cpp/build/libmonero-cpp.so dist/ubuntu-22.04/
+
+        # Create zip and tar.gz archives from the distribution directory
+        cd dist/ubuntu-22.04
+        zip monero-java_ubuntu.zip libmonero-java.so # libmonero-cpp.so
+        tar -czvf monero-java_ubuntu.tar.gz libmonero-java.so # libmonero-cpp.so
+        
+    - name: Upload Release Assets
+      # This step will also only run if the workflow was triggered by a release
+      if: github.event_name == 'release'
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./dist/ubuntu-22.04/monero-java_ubuntu.zip
+        asset_name: monero-java_ubuntu.zip
+        asset_content_type: application/zip
+    
+    - name: Upload tar.gz Release Asset
+      # This step will also only run if the workflow was triggered by a release
+      if: github.event_name == 'release'
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./dist/ubuntu-22.04/monero-java_ubuntu.tar.gz
+        asset_name: monero-java_ubuntu.tar.gz
+        asset_content_type: application/gzip
