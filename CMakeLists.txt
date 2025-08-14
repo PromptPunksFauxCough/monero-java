@@ -95,15 +95,15 @@ message(STATUS "Using libsodium library at ${SODIUM_LIBRARY}")
 # HIDAPI
 ############
 
-if(APPLE)
-  include_directories(SYSTEM /usr/include/malloc)
-  if(POLICY CMP0042)
-    cmake_policy(SET CMP0042 NEW)
-  endif()
-endif()
+#if(APPLE)
+#  include_directories(SYSTEM /usr/include/malloc)
+#  if(POLICY CMP0042)
+#    cmake_policy(SET CMP0042 NEW)
+#  endif()
+#endif()
 
-find_package(HIDAPI REQUIRED)
-message(STATUS "Using HIDAPI include dir at ${HIDAPI_INCLUDE_DIR}")
+#find_package(HIDAPI REQUIRED)
+#message(STATUS "Using HIDAPI include dir at ${HIDAPI_INCLUDE_DIR}")
 
 ##########################
 # Monero-cpp fetch
