@@ -31,6 +31,81 @@ find_library(UNBOUND_LIBRARIES NAMES unbound libunbound)
 message(STATUS "Found UNBOUND include dir at: ${UNBOUND_INCLUDE_DIR}")
 message(STATUS "Found UNBOUND libraries at: ${UNBOUND_LIBRARIES}")
 
+############
+# Protobuf
+############
+
+if (NOT APPLE)
+  include(FindProtobuf)
+  find_package(Protobuf)
+  message(STATUS "Protobuf lib: ${Protobuf_LIBRARY}, inc: ${Protobuf_INCLUDE_DIR}, protoc: ${Protobuf_PROTOC_EXECUTABLE}")
+endif()
+
+############
+# LibUSB
+############
+
+find_library(usb_LIBRARY NAMES usb-1.0 libusb usb)
+set(LibUSB_LIBRARIES ${usb_LIBRARY})
+
+############
+# Boost
+############
+
+set(Boost_NO_BOOST_CMAKE 1)
+set(Boost_USE_MULTITHREADED ON)
+find_package(Boost 1.58 QUIET REQUIRED COMPONENTS chrono date_time filesystem program_options regex serialization wserialization system thread)
+message(STATUS "Using Boost include dir at ${Boost_INCLUDE_DIR}")
+
+############
+# OpenSSL
+############
+
+if (APPLE AND NOT IOS)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=default -std=c++14")
+  if (NOT OPENSSL_ROOT_DIR)
+      EXECUTE_PROCESS(COMMAND brew --prefix openssl
+        OUTPUT_VARIABLE OPENSSL_ROOT_DIR
+        OUTPUT_STRIP_TRAILING_WHITESPACE)
+    message(STATUS "Using OpenSSL found at ${OPENSSL_ROOT_DIR}")
+  endif()
+endif()
+
+find_package(OpenSSL REQUIRED)
+message(STATUS "Using OpenSSL include dir at ${OPENSSL_INCLUDE_DIR}")
+
+if(STATIC AND NOT IOS)
+  if(UNIX)
+    set(OPENSSL_LIBRARIES "${OPENSSL_LIBRARIES};${CMAKE_DL_LIBS};${CMAKE_THREAD_LIBS_INIT}")
+  endif()
+endif()
+
+if (WIN32)
+  list(APPEND OPENSSL_LIBRARIES ws2_32 crypt32 bcrypt)
+endif()
+
+############
+# libsodium
+############
+
+find_library(SODIUM_LIBRARY sodium REQUIRED)
+message(STATUS "Using libsodium library at ${SODIUM_LIBRARY}")
+
+############
+# HIDAPI
+############
+
+if(APPLE)
+  include_directories(SYSTEM /usr/include/malloc)
+  if(POLICY CMP0042)
+    cmake_policy(SET CMP0042 NEW)
+  endif()
+endif()
+
+find_package(HIDAPI REQUIRED)
+message(STATUS "Using HIDAPI include dir at ${HIDAPI_INCLUDE_DIR}")
+add_definitions(-DHAVE_HIDAPI)
+
 ##########################
 # Monero-cpp fetch
 ##########################
