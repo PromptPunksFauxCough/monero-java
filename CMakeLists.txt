@@ -21,9 +21,15 @@ endif()
 ##########################
 # Unbound
 ##########################
-find_package(UNBOUND REQUIRED)
-message(STATUS "Using UNBOUND include dir at ${UNBOUND_INCLUDE_DIR}")
-message(STATUS "Using UNBOUND libraries at ${UNBOUND_LIBRARIES}")
+# find_package(UNBOUND REQUIRED)
+# message(STATUS "Using UNBOUND include dir at ${UNBOUND_INCLUDE_DIR}")
+# message(STATUS "Using UNBOUND libraries at ${UNBOUND_LIBRARIES}")
+
+# Manually find libunbound and its headers
+find_path(UNBOUND_INCLUDE_DIR unbound.h)
+find_library(UNBOUND_LIBRARIES NAMES unbound libunbound)
+message(STATUS "Found UNBOUND include dir at: ${UNBOUND_INCLUDE_DIR}")
+message(STATUS "Found UNBOUND libraries at: ${UNBOUND_LIBRARIES}")
 
 ##########################
 # Monero-cpp fetch
