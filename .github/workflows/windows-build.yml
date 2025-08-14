@@ -37,6 +37,7 @@ jobs:
             mingw-w64-x86_64-protobuf
             mingw-w64-x86_64-libusb
             mingw-w64-x86_64-readline
+            mingw-w64-x86_64-ccache
             git
             gettext
             base-devel
