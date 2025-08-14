@@ -18,10 +18,95 @@ if(NOT DEFINED ENV{JAVA_HOME} OR "$ENV{JAVA_HOME}" STREQUAL "")
   message(FATAL_ERROR "JAVA_HOME variable not set, e.g.: export JAVA_HOME=/path/to/jdk")
 endif()
 
-##########################
-# Unbound
-##########################
+############
+# Protobuf
+############
 
+if (NOT APPLE)
+  find_path(Protobuf_INCLUDE_DIR NAMES google/protobuf/stubs/common.h)
+  find_library(Protobuf_LIBRARY NAMES protobuf STATIC)
+  find_program(Protobuf_PROTOC_EXECUTABLE NAMES protoc)
+  message(STATUS "Protobuf lib: ${Protobuf_LIBRARY}, inc: ${Protobuf_INCLUDE_DIR}, protoc: ${Protobuf_PROTOC_EXECUTABLE}")
+endif()
+
+############
+# LibUSB
+############
+
+find_path(LibUSB_INCLUDE_DIR NAMES libusb.h)
+find_library(LibUSB_LIBRARIES NAMES usb-1.0 libusb usb)
+message(STATUS "Found LibUSB headers at: ${LibUSB_INCLUDE_DIR}")
+message(STATUS "Found LibUSB library at: ${LibUSB_LIBRARIES}")
+
+############
+# Boost
+############
+
+set(Boost_NO_BOOST_CMAKE 1)
+set(Boost_USE_MULTITHREADED ON)
+find_package(Boost 1.58 QUIET REQUIRED COMPONENTS chrono date_time filesystem program_options regex serialization wserialization system thread)
+message(STATUS "Using Boost include dir at ${Boost_INCLUDE_DIR}")
+
+############
+# OpenSSL
+############
+
+if (APPLE AND NOT IOS)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=default -std=c++14")
+  if (NOT OPENSSL_ROOT_DIR)
+      execute_process(COMMAND brew --prefix openssl
+        OUTPUT_VARIABLE OPENSSL_ROOT_DIR
+        OUTPUT_STRIP_TRAILING_WHITESPACE)
+    message(STATUS "Using OpenSSL found at ${OPENSSL_ROOT_DIR}")
+  endif()
+endif()
+
+find_path(OPENSSL_INCLUDE_DIR NAMES openssl/ssl.h)
+find_library(OPENSSL_SSL_LIBRARY NAMES ssl STATIC)
+find_library(OPENSSL_CRYPTO_LIBRARY NAMES crypto STATIC)
+set(OPENSSL_LIBRARIES ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY})
+
+message(STATUS "Using OpenSSL include dir at ${OPENSSL_INCLUDE_DIR}")
+message(STATUS "Using OpenSSL libraries at ${OPENSSL_LIBRARIES}")
+
+if(STATIC AND NOT IOS)
+  if(UNIX)
+    set(OPENSSL_LIBRARIES "${OPENSSL_LIBRARIES};${CMAKE_DL_LIBS};${CMAKE_THREAD_LIBS_INIT}")
+  endif()
+endif()
+
+if (WIN32)
+  list(APPEND OPENSSL_LIBRARIES ws2_32 crypt32 bcrypt)
+endif()
+
+############
+# libsodium
+############
+
+find_path(SODIUM_INCLUDE_DIR NAMES sodium.h)
+find_library(SODIUM_LIBRARY NAMES sodium STATIC)
+message(STATUS "Found libsodium include dir at: ${SODIUM_INCLUDE_DIR}")
+message(STATUS "Found libsodium library at: ${SODIUM_LIBRARY}")
+
+############
+# HIDAPI
+############
+
+if(APPLE)
+  include_directories(SYSTEM /usr/include/malloc)
+  if(POLICY CMP0042)
+    cmake_policy(SET CMP0042 NEW)
+  endif()
+endif()
+
+find_path(HIDAPI_INCLUDE_DIR NAMES hidapi.h PATHS /usr/include/hidapi)
+find_library(HIDAPI_LIBRARY NAMES hidapi-libusb hidapi-hidraw STATIC)
+message(STATUS "Found HIDAPI include dir at: ${HIDAPI_INCLUDE_DIR}")
+message(STATUS "Found HIDAPI library at: ${HIDAPI_LIBRARY}")
+
+############
+# Unbound
+############
 find_path(UNBOUND_INCLUDE_DIR unbound.h)
 find_library(UNBOUND_LIBRARIES NAMES unbound libunbound)
 message(STATUS "Found UNBOUND include dir at: ${UNBOUND_INCLUDE_DIR}")
