@@ -18,13 +18,6 @@ if(NOT DEFINED ENV{JAVA_HOME} OR "$ENV{JAVA_HOME}" STREQUAL "")
   message(FATAL_ERROR "JAVA_HOME variable not set, e.g.: export JAVA_HOME=/path/to/jdk")
 endif()
 
-############
-# Unbound
-############
-
-find_package(UNBOUND REQUIRED)
-message(STATUS "Using UNBOUND include dir at ${UNBOUND_INCLUDE_DIR}")
-
 ##########################
 # Monero-cpp fetch
 ##########################
