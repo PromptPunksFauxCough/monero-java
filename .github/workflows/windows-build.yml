@@ -47,23 +47,28 @@ jobs:
 #        run: |
 #          pacman -U --noconfirm https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-cmake-3.31.6-1-any.pkg.tar.zst
 
+#      - name: Download & install CMake using URL
+#        run: |
+#          pacman -U --noconfirm https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-cmake-3.31.6-1-any.pkg.tar.zst
+
       - name: Cache CMake (v3.31.6)
         id: cache-cmake
         uses: actions/cache@v4
         with:
           path: C:/msys64/var/cache/pacman/pkg/mingw-w64-x86_64-cmake-3.31.6-1-any.pkg.tar.zst
-          key: ${{ runner.os }}-cmake-1.0-cache
+          key: ${{ runner.os }}-cmake-3.31.6-cache
+
+      - name: Install CMake using cached package
+        if: steps.cache-cmake.outputs.cache-hit == 'true'
+        shell: msys2 {0}
+        run: |
+          pacman -U --noconfirm C:/msys64/var/cache/pacman/pkg/mingw-w64-x86_64-cmake-3.31.6-1-any.pkg.tar.zst
 
       - name: Download & install CMake using URL
         if: steps.cache-cmake.outputs.cache-hit != 'true'
         shell: msys2 {0}
         run: |
           pacman -U --noconfirm https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-cmake-3.31.6-1-any.pkg.tar.zst
-
-      - name: Install CMake using cached package
-        shell: msys2 {0}
-        run: |
-          pacman --noconfirm -U C:/msys64/var/cache/pacman/pkg/mingw-w64-x86_64-cmake-3.31.6-1-any.pkg.tar.zst
 
       - name: Verify CMake Installation
         run: |
