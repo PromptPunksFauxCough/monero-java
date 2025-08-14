@@ -44,7 +44,7 @@ jobs:
       run: |
         mkdir -p build-ubuntu
         cd build-ubuntu
-        cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=OFF -DCMAKE_FIND_DEBUG_MODE=ON
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=OFF -DCMAKE_FIND_DEBUG_MODE=ON --trace-expand
         cmake --build . --parallel 1
       env:
         ACTIONS_STEP_DEBUG: true
