@@ -43,9 +43,27 @@ jobs:
             curl
             unzip
 
-      - name: Install CMake (v3.31.6)
+#      - name: Install CMake (v3.31.6)
+#        run: |
+#          pacman -U --noconfirm https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-cmake-3.31.6-1-any.pkg.tar.zst
+
+      - name: Cache CMake (v3.31.6)
+        id: cache-cmake
+        uses: actions/cache@v4
+        with:
+          path: C:/msys64/var/cache/pacman/pkg/mingw-w64-x86_64-cmake-3.31.6-1-any.pkg.tar.zst
+          key: ${{ runner.os }}-cmake-1.0-cache
+
+      - name: Download & install CMake using URL
+        if: steps.cache-cmake.outputs.cache-hit != 'true'
+        shell: msys2 {0}
         run: |
           pacman -U --noconfirm https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-cmake-3.31.6-1-any.pkg.tar.zst
+
+      - name: Install CMake using cached package
+        shell: msys2 {0}
+        run: |
+          pacman --noconfirm -U C:/msys64/var/cache/pacman/pkg/mingw-w64-x86_64-cmake-3.31.6-1-any.pkg.tar.zst
 
       - name: Verify CMake Installation
         run: |
@@ -93,6 +111,14 @@ jobs:
         with:
           submodules: false
 
+      - name: Restore ccache cache
+        id: cache-ccache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: ${{ runner.os }}-ccache-${{ hashFiles('**/*.cpp', '**/*.c', '**/*.h', '**/CMakeLists.txt') }}
+          restore-keys: ${{ runner.os }}-ccache-
+
       - name: CMake Configure
         run: |
           cmake -DBoost_DEBUG=ON -G "MinGW Makefiles" \
@@ -125,11 +151,20 @@ jobs:
             -DProtobuf_PROTOC_EXECUTABLE=/mingw64/bin/protoc.exe \
             -DReadline_ROOT_DIR=/mingw64 \
             -DReadline_INCLUDE_DIR=/mingw64/include \
-            -DReadline_LIBRARY=/mingw64/lib/libreadline.a
+            -DReadline_LIBRARY=/mingw64/lib/libreadline.a \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
       - name: CMake Build
         run: |
           cmake --build build --config Release
+
+      - name: Save ccache cache
+        if: always() && steps.cache-ccache.outputs.cache-hit != 'true'
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: ${{ runner.os }}-ccache-${{ hashFiles('**/*.cpp', '**/*.c', '**/*.h', '**/CMakeLists.txt') }}
 
       - name: Prepare and package release artifacts
         if: github.event_name == 'release'
