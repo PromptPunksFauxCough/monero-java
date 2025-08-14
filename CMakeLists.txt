@@ -19,6 +19,13 @@ if(NOT DEFINED ENV{JAVA_HOME} OR "$ENV{JAVA_HOME}" STREQUAL "")
 endif()
 
 ##########################
+# Unbound
+##########################
+find_package(UNBOUND REQUIRED)
+message(STATUS "Using UNBOUND include dir at ${UNBOUND_INCLUDE_DIR}")
+message(STATUS "Using UNBOUND libraries at ${UNBOUND_LIBRARIES}")
+
+##########################
 # Monero-cpp fetch
 ##########################
 set(MONERO_CPP_DIR "${CMAKE_SOURCE_DIR}/external/monero-cpp")
