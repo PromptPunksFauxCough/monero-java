@@ -152,7 +152,7 @@ jobs:
             -DLIBUNWIND_INCLUDE_DIR=/mingw64/include \
             -DLIBUNWIND_LIBRARIES="/mingw64/lib/libunwind.a" \
             -DBacktrace_INCLUDE_DIR=/mingw64/include \
-            -DBacktrace_LIBRARY=/mingw64/lib/libbacktrace.a \
+            -DBacktrace_LIBRARIES=/mingw64/lib/libbacktrace.a \
             -DProtobuf_INCLUDE_DIR=/mingw64/include \
             -DProtobuf_LIBRARY=/mingw64/lib/libprotobuf.a \
             -DProtobuf_PROTOC_EXECUTABLE=/mingw64/bin/protoc.exe \
