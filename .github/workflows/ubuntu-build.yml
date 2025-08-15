@@ -53,11 +53,10 @@ jobs:
       run: |
         mkdir -p build-ubuntu
         cd build-ubuntu
-        cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=OFF
         cmake --build . --parallel 1
 
     - name: Prepare and package release artifacts
-      # This step will only run if the workflow was triggered by a release
       if: github.event_name == 'release'
       run: |
         # Create a directory for the final artifacts
@@ -75,7 +74,6 @@ jobs:
         tar -czvf monero-java_ubuntu.tar.gz libmonero-java.so # libmonero-cpp.so
         
     - name: Upload Release Assets
-      # This step will also only run if the workflow was triggered by a release
       if: github.event_name == 'release'
       uses: actions/upload-release-asset@v1
       env:
@@ -87,7 +85,6 @@ jobs:
         asset_content_type: application/zip
     
     - name: Upload tar.gz Release Asset
-      # This step will also only run if the workflow was triggered by a release
       if: github.event_name == 'release'
       uses: actions/upload-release-asset@v1
       env:
