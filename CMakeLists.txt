@@ -537,38 +537,4 @@ if(APPLE)
     POST_BUILD COMMAND
     ${CMAKE_INSTALL_NAME_TOOL} -add_rpath "@loader_path/" $<TARGET_FILE:monero-java>
   )
-endif()es(monero-java PUBLIC "$ENV{JAVA_HOME}/include/darwin")
-elseif(WIN32)
-  target_include_directories(monero-java PUBLIC "$ENV{JAVA_HOME}/include/win32")
-else()
-  target_include_directories(monero-java PUBLIC "$ENV{JAVA_HOME}/include/linux")
-endif()
-
-target_link_libraries(monero-java
-  monero-cpp
-  wallet_api
-  ${Boost_LIBRARIES}
-  ${OPENSSL_LIBRARIES}
-  ${EXTRA_LIBRARIES}
-)
-
-if(WIN32)
-  target_link_options(monero-java PUBLIC "-Wl,--enable-auto-import,--export-all-symbols")
-endif()
-
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-  target_link_options(monero-java PRIVATE "-z" "noexecstack")
-endif()
-
-install(TARGETS monero-java
-  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime
-  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Runtime
-  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Development
-)
-
-if(APPLE)
-  add_custom_command(TARGET monero-java
-    POST_BUILD COMMAND
-    ${CMAKE_INSTALL_NAME_TOOL} -add_rpath "@loader_path/" $<TARGET_FILE:monero-java>
-  )
 endif()
