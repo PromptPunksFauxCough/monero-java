@@ -17,6 +17,7 @@ endif()
 if(NOT DEFINED ENV{JAVA_HOME} OR "$ENV{JAVA_HOME}" STREQUAL "")
   message(FATAL_ERROR "JAVA_HOME variable not set, e.g.: export JAVA_HOME=/path/to/jdk")
 endif()
+
 ####################
 # Extra libraries
 ####################
@@ -95,7 +96,7 @@ if(BUILD_STATIC)
 
 else()
 
-  find_library(LibUSB_LIBRARIES NAMES usb-1.0 libusb usb SHARED)
+  find_library(LibUSB_LIBRARIES NAMES usb-1.0 libusb usb)
   message(STATUS "Found LibUSB headers at: ${LibUSB_INCLUDE_DIR}")
   message(STATUS "Found LibUSB library at: ${LibUSB_LIBRARIES}")
 
@@ -109,14 +110,14 @@ if(BUILD_STATIC)
 
   set(Boost_NO_BOOST_CMAKE 1)
   set(Boost_USE_MULTITHREADED ON)
-  find_package(Boost 1.58 QUIET REQUIRED COMPONENTS chrono date_time filesystem program_options regex serialization wserialization system thread STATIC)
+  find_package(Boost 1.58 QUIET REQUIRED COMPONENTS chrono date_time filesystem program_options regex serialization wserialization system thread)
   message(STATUS "Using Boost include dir at ${Boost_INCLUDE_DIR}")
 
 else()
 
   set(Boost_NO_BOOST_CMAKE 1)
   set(Boost_USE_MULTITHREADED ON)
-  find_package(Boost 1.58 QUIET REQUIRED COMPONENTS chrono date_time filesystem program_options regex serialization wserialization system thread SHARED)
+  find_package(Boost 1.58 QUIET REQUIRED COMPONENTS chrono date_time filesystem program_options regex serialization wserialization system thread)
   message(STATUS "Using Boost include dir at ${Boost_INCLUDE_DIR}")
 
 endif()
@@ -227,7 +228,7 @@ else()
 #  find_package(HIDAPI REQUIRED)
 #  message(STATUS "Using HIDAPI include dir at: ${HIDAPI_INCLUDE_DIR}")
   find_path(HIDAPI_INCLUDE_DIR NAMES hidapi.h PATHS /usr/include/hidapi)
-  find_library(HIDAPI_LIBRARY NAMES hidapi-libusb hidapi-hidraw SHARED)
+  find_library(HIDAPI_LIBRARY NAMES hidapi-libusb hidapi-hidraw)
   message(STATUS "Using HIDAPI include dir at: ${HIDAPI_INCLUDE_DIR}")
   message(STATUS "Using HIDAPI library at: ${HIDAPI_LIBRARY}")
   
@@ -247,7 +248,7 @@ if(BUILD_STATIC)
 
 else()
 
-  find_library(UNBOUND_LIBRARIES NAMES unbound libunbound SHARED)
+  find_library(UNBOUND_LIBRARIES NAMES unbound libunbound)
   message(STATUS "Found UNBOUND include dir at: ${UNBOUND_INCLUDE_DIR}")
   message(STATUS "Found UNBOUND libraries at: ${UNBOUND_LIBRARIES}")
 
