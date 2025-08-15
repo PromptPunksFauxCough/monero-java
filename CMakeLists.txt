@@ -95,7 +95,7 @@ if(BUILD_STATIC)
 
 else()
 
-  find_library(LibUSB_LIBRARIES NAMES usb-1.0 libusb usb)
+  find_library(LibUSB_LIBRARIES NAMES usb-1.0 libusb usb SHARED)
   message(STATUS "Found LibUSB headers at: ${LibUSB_INCLUDE_DIR}")
   message(STATUS "Found LibUSB library at: ${LibUSB_LIBRARIES}")
 
@@ -116,7 +116,7 @@ else()
 
   set(Boost_NO_BOOST_CMAKE 1)
   set(Boost_USE_MULTITHREADED ON)
-  find_package(Boost 1.58 QUIET REQUIRED COMPONENTS chrono date_time filesystem program_options regex serialization wserialization system thread)
+  find_package(Boost 1.58 QUIET REQUIRED COMPONENTS chrono date_time filesystem program_options regex serialization wserialization system thread SHARED)
   message(STATUS "Using Boost include dir at ${Boost_INCLUDE_DIR}")
 
 endif()
@@ -224,8 +224,13 @@ else()
     endif()
   endif()
 
-  find_package(HIDAPI REQUIRED)
+#  find_package(HIDAPI REQUIRED)
+#  message(STATUS "Using HIDAPI include dir at: ${HIDAPI_INCLUDE_DIR}")
+  find_path(HIDAPI_INCLUDE_DIR NAMES hidapi.h PATHS /usr/include/hidapi)
+  find_library(HIDAPI_LIBRARY NAMES hidapi-libusb hidapi-hidraw SHARED
   message(STATUS "Using HIDAPI include dir at: ${HIDAPI_INCLUDE_DIR}")
+  message(STATUS "Using HIDAPI library at: ${HIDAPI_LIBRARY}")
+  
 
 endif()
 
@@ -242,7 +247,7 @@ if(BUILD_STATIC)
 
 else()
 
-  find_library(UNBOUND_LIBRARIES NAMES unbound libunbound)
+  find_library(UNBOUND_LIBRARIES NAMES unbound libunbound SHARED)
   message(STATUS "Found UNBOUND include dir at: ${UNBOUND_INCLUDE_DIR}")
   message(STATUS "Found UNBOUND libraries at: ${UNBOUND_LIBRARIES}")
 
