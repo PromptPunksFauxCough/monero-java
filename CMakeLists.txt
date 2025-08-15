@@ -481,7 +481,46 @@ endif()
 # JNI library setup
 ##########################
 set(MONERO_JNI_SRC_FILES src/main/cpp/monero_jni_bridge.cpp)
-add_library(monero-java SHARED ${MONERO_JNI_SRC_FILES})
+
+if(BUILD_STATIC)
+
+  add_library(monero-java-static STATIC ${MONERO_JNI_SRC_FILES})
+
+  target_link_libraries(monero-java-static
+    monero-cpp
+    wallet_api
+    ${Boost_LIBRARIES}
+    ${OPENSSL_LIBRARIES}
+    ${SODIUM_LIBRARY}
+    ${UNBOUND_LIBRARY}
+    ${HIDAPI_LIBRARY}
+    ${LibUSB_LIBRARIES}
+    ${JNI_LIBRARIES}
+    ${EXTRA_LIBRARIES}
+  )
+
+  add_library(monero-java SHARED)
+
+  target_link_libraries(monero-java PRIVATE monero-java-static)
+
+else()
+
+  add_library(monero-java SHARED ${MONERO_JNI_SRC_FILES})
+
+  target_link_libraries(monero-java
+    monero-cpp
+    wallet_api
+    ${Boost_LIBRARIES}
+    ${OPENSSL_LIBRARIES}
+    ${SODIUM_LIBRARY}
+    ${UNBOUND_LIBRARY}
+    ${HIDAPI_LIBRARY}
+    ${LibUSB_LIBRARIES}
+    ${JNI_LIBRARIES}
+    ${EXTRA_LIBRARIES}
+  )
+
+endif()
 
 target_include_directories(monero-java PUBLIC
   "$ENV{JAVA_HOME}"
@@ -509,14 +548,6 @@ elseif(WIN32)
 else()
   target_include_directories(monero-java PUBLIC "$ENV{JAVA_HOME}/include/linux")
 endif()
-
-target_link_libraries(monero-java
-  monero-cpp
-  wallet_api
-  ${Boost_LIBRARIES}
-  ${OPENSSL_LIBRARIES}
-  ${EXTRA_LIBRARIES}
-)
 
 if(WIN32)
   target_link_options(monero-java PUBLIC "-Wl,--enable-auto-import,--export-all-symbols")
