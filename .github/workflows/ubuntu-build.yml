@@ -27,18 +27,21 @@ jobs:
         distribution: "liberica"
         java-version: "21"
 
+    - name: Cache APT dependencies
+      id: cache-apt
+      uses: actions/cache@v3
+      with:
+        path: /var/cache/apt/archives
+        key: ${{ runner.os }}-apt-dependencies-v1
+        restore-keys: |
+          ${{ runner.os }}-apt-dependencies-
+
     - name: Install dependencies via apt-get
+      if: steps.cache-apt.outputs.cache-hit != 'true'
       run: |
         sudo apt-get update
         sudo apt-get install -y build-essential libboost-all-dev libssl-dev libzmq3-dev libsodium-dev unbound libunbound-dev liblzma-dev libreadline-dev libexpat1-dev qttools5-dev libhidapi-dev libusb-1.0-0-dev libprotobuf-dev doxygen graphviz libtool gperf libevent-dev pkg-config
 
-    - name: Cache APT dependencies
-      uses: actions/cache@v3
-      with:
-        path: /var/cache/apt/archives
-        key: ${{ runner.os }}-apt-${{ hashFiles('**/apt-packages.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-apt-
 
 #    - name: Configure and build (with debug flags)
 #      run: |
@@ -49,45 +52,45 @@ jobs:
 #      env:
 #        ACTIONS_STEP_DEBUG: true
 
-    - name: Configure and build
-      run: |
-        mkdir -p build-ubuntu
-        cd build-ubuntu
-        cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON
-        cmake --build . --parallel 1
-
-    - name: Prepare and package release artifacts
-      if: github.event_name == 'release'
-      run: |
-        # Create a directory for the final artifacts
-        mkdir -p dist/ubuntu-22.04
-        
-        # Copy the monero-java library to the distribution directory
-        cp build-ubuntu/libmonero-java.so dist/ubuntu-22.04/
-        
-        # Create zip and tar.gz archives from the distribution directory.
-        # This is more robust as it's run from the project root.
-        zip -r dist/ubuntu-22.04/monero-java_ubuntu.zip dist/ubuntu-22.04/
-        tar -czvf dist/ubuntu-22.04/monero-java_ubuntu.tar.gz -C dist/ubuntu-22.04 .
-          
-    - name: Upload Release Assets
-      if: github.event_name == 'release'
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./dist/ubuntu-22.04/monero-java_ubuntu.zip
-        asset_name: monero-java_ubuntu.zip
-        asset_content_type: application/zip
-    
-    - name: Upload tar.gz Release Asset
-      if: github.event_name == 'release'
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./dist/ubuntu-22.04/monero-java_ubuntu.tar.gz
-        asset_name: monero-java_ubuntu.tar.gz
-        asset_content_type: application/gzip
+#    - name: Configure and build
+#      run: |
+#        mkdir -p build-ubuntu
+#        cd build-ubuntu
+#        cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON
+#        cmake --build . --parallel 1
+#
+#    - name: Prepare and package release artifacts
+#      if: github.event_name == 'release'
+#      run: |
+#        # Create a directory for the final artifacts
+#        mkdir -p dist/ubuntu-22.04
+#        
+#        # Copy the monero-java library to the distribution directory
+#        cp build-ubuntu/libmonero-java.so dist/ubuntu-22.04/
+#        
+#        # Create zip and tar.gz archives from the distribution directory.
+#        # This is more robust as it's run from the project root.
+#        zip -r dist/ubuntu-22.04/monero-java_ubuntu.zip dist/ubuntu-22.04/
+#        tar -czvf dist/ubuntu-22.04/monero-java_ubuntu.tar.gz -C dist/ubuntu-22.04 .
+#          
+#    - name: Upload Release Assets
+#      if: github.event_name == 'release'
+#      uses: actions/upload-release-asset@v1
+#      env:
+#        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#      with:
+#        upload_url: ${{ github.event.release.upload_url }}
+#        asset_path: ./dist/ubuntu-22.04/monero-java_ubuntu.zip
+#        asset_name: monero-java_ubuntu.zip
+#        asset_content_type: application/zip
+#    
+#    - name: Upload tar.gz Release Asset
+#      if: github.event_name == 'release'
+#      uses: actions/upload-release-asset@v1
+#      env:
+#        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#      with:
+#        upload_url: ${{ github.event.release.upload_url }}
+#        asset_path: ./dist/ubuntu-22.04/monero-java_ubuntu.tar.gz
+#        asset_name: monero-java_ubuntu.tar.gz
+#        asset_content_type: application/gzip
