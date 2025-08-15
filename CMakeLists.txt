@@ -499,7 +499,9 @@ if(BUILD_STATIC)
     ${EXTRA_LIBRARIES}
   )
 
-  add_library(monero-java SHARED)
+  file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/monero-java_wrapper.cpp" "")
+
+  add_library(monero-java SHARED "${CMAKE_CURRENT_BINARY_DIR}/monero-java_wrapper.cpp")
 
   target_link_libraries(monero-java PRIVATE monero-java-static)
 
