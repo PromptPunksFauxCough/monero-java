@@ -227,7 +227,7 @@ else()
 #  find_package(HIDAPI REQUIRED)
 #  message(STATUS "Using HIDAPI include dir at: ${HIDAPI_INCLUDE_DIR}")
   find_path(HIDAPI_INCLUDE_DIR NAMES hidapi.h PATHS /usr/include/hidapi)
-  find_library(HIDAPI_LIBRARY NAMES hidapi-libusb hidapi-hidraw SHARED
+  find_library(HIDAPI_LIBRARY NAMES hidapi-libusb hidapi-hidraw SHARED)
   message(STATUS "Using HIDAPI include dir at: ${HIDAPI_INCLUDE_DIR}")
   message(STATUS "Using HIDAPI library at: ${HIDAPI_LIBRARY}")
   
