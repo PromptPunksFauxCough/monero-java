@@ -53,7 +53,7 @@ jobs:
         mkdir -p dist/ubuntu-22.04
         
         cp build-ubuntu/libmonero-java.so dist/ubuntu-22.04/
-        cp external/monero-cpp/install/monero-cpp.so dist/ubuntu-22.04/
+        cp external/monero-cpp/build/libmonero-cpp.so dist/ubuntu-22.04/
         
         zip -r dist/ubuntu-22.04/monero-java_ubuntu.zip dist/ubuntu-22.04/
         tar -czvf dist/ubuntu-22.04/monero-java_ubuntu.tar.gz -C dist/ubuntu-22.04 .
