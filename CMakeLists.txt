@@ -420,17 +420,35 @@ endfunction()
 # Register Monero static libs (as needed)
 register_monero_cpp_lib(libwallet                lib/libwallet.a)
 
-add_library(monero-cpp SHARED IMPORTED GLOBAL)
+if (BUILD_STATIC)
 
-if(APPLE)
-  set_target_properties(monero-cpp PROPERTIES IMPORTED_LOCATION "${MONERO_CPP_DIR}/build/libmonero-cpp.dylib")
-elseif(WIN32)
-  set_target_properties(monero-cpp PROPERTIES
-    IMPORTED_LOCATION "${MONERO_CPP_DIR}/build/libmonero-cpp.dll"
-    IMPORTED_IMPLIB "${MONERO_CPP_DIR}/build/libmonero-cpp.dll.a"
-  )
+  add_library(monero-cpp STATIC IMPORTED GLOBAL)
+
+  if(APPLE)
+    set_target_properties(monero-cpp PROPERTIES IMPORTED_LOCATION "${MONERO_CPP_DIR}/build/libmonero-cpp.a")
+  elseif(WIN32)
+    set_target_properties(monero-cpp PROPERTIES
+      IMPORTED_LOCATION "${MONERO_CPP_DIR}/build/libmonero-cpp.lib"
+    )
+  else()
+    set_target_properties(monero-cpp PROPERTIES IMPORTED_LOCATION "${MONERO_CPP_DIR}/build/libmonero-cpp.a")
+  endif()
+
 else()
-  set_target_properties(monero-cpp PROPERTIES IMPORTED_LOCATION "${MONERO_CPP_DIR}/build/libmonero-cpp.so")
+
+  add_library(monero-cpp SHARED IMPORTED GLOBAL)
+
+  if(APPLE)
+    set_target_properties(monero-cpp PROPERTIES IMPORTED_LOCATION "${MONERO_CPP_DIR}/build/libmonero-cpp.dylib")
+  elseif(WIN32)
+    set_target_properties(monero-cpp PROPERTIES
+      IMPORTED_LOCATION "${MONERO_CPP_DIR}/build/libmonero-cpp.dll"
+      IMPORTED_IMPLIB "${MONERO_CPP_DIR}/build/libmonero-cpp.dll.a"
+    )
+  else()
+    set_target_properties(monero-cpp PROPERTIES IMPORTED_LOCATION "${MONERO_CPP_DIR}/build/libmonero-cpp.so")
+  endif()
+
 endif()
 
 add_dependencies(monero-cpp monero_cpp_build)
@@ -482,9 +500,41 @@ endif()
 ##########################
 set(MONERO_JNI_SRC_FILES src/main/cpp/monero_jni_bridge.cpp)
 
+find_path(JNI_INCLUDE_DIR NAMES jni.h PATHS "$ENV{JAVA_HOME}/include")
+find_library(JNI_LIBRARY NAMES jawt jvm PATHS "$ENV{JAVA_HOME}/lib" "$ENV{JAVA_HOME}/jre/lib")
+list(APPEND JNI_LIBRARIES ${JNI_LIBRARY})
+
+
 if(BUILD_STATIC)
 
   add_library(monero-java-static STATIC ${MONERO_JNI_SRC_FILES})
+
+  if(APPLE)
+    target_include_directories(monero-java-static PUBLIC "$ENV{JAVA_HOME}/include/darwin")
+  elseif(WIN32)
+    target_include_directories(monero-java-static PUBLIC "$ENV{JAVA_HOME}/include/win32")
+  else()
+    target_include_directories(monero-java-static PUBLIC "$ENV{JAVA_HOME}/include/linux")
+  endif()
+
+  target_include_directories(monero-java-static PUBLIC
+    "$ENV{JAVA_HOME}"
+    "$ENV{JAVA_HOME}/include"
+    "${Boost_INCLUDE_DIR}"
+    "${OPENSSL_INCLUDE_DIR}"
+    "${MONERO_CPP_DIR}/external/libsodium/include/sodium"
+    "${MONERO_CPP_DIR}/external/openssl-sdk/include"
+    "${MONERO_CPP_DIR}/src"
+    "${MONERO_PROJECT_DIR}/contrib/epee/include"
+    "${MONERO_PROJECT_DIR}/external"
+    "${MONERO_PROJECT_DIR}/external/easylogging++"
+    "${MONERO_PROJECT_DIR}/external/rapidjson/include"
+    "${MONERO_PROJECT_DIR}/src"
+    "${MONERO_PROJECT_DIR}/src/crypto"
+    "${MONERO_PROJECT_DIR}/src/crypto/crypto_ops_builder/include"
+    "${MONERO_PROJECT_DIR}/src/wallet"
+    "${MONERO_PROJECT_DIR}/src/wallet/api"
+  )
 
   target_link_libraries(monero-java-static
     monero-cpp
@@ -509,6 +559,33 @@ else()
 
   add_library(monero-java SHARED ${MONERO_JNI_SRC_FILES})
 
+  if(APPLE)
+    target_include_directories(monero-java PUBLIC "$ENV{JAVA_HOME}/include/darwin")
+  elseif(WIN32)
+    target_include_directories(monero-java PUBLIC "$ENV{JAVA_HOME}/include/win32")
+  else()
+    target_include_directories(monero-java PUBLIC "$ENV{JAVA_HOME}/include/linux")
+  endif()
+
+  target_include_directories(monero-java PUBLIC
+    "$ENV{JAVA_HOME}"
+    "$ENV{JAVA_HOME}/include"
+    "${Boost_INCLUDE_DIR}"
+    "${OPENSSL_INCLUDE_DIR}"
+    "${MONERO_CPP_DIR}/external/libsodium/include/sodium"
+    "${MONERO_CPP_DIR}/external/openssl-sdk/include"
+    "${MONERO_CPP_DIR}/src"
+    "${MONERO_PROJECT_DIR}/contrib/epee/include"
+    "${MONERO_PROJECT_DIR}/external"
+    "${MONERO_PROJECT_DIR}/external/easylogging++"
+    "${MONERO_PROJECT_DIR}/external/rapidjson/include"
+    "${MONERO_PROJECT_DIR}/src"
+    "${MONERO_PROJECT_DIR}/src/crypto"
+    "${MONERO_PROJECT_DIR}/src/crypto/crypto_ops_builder/include"
+    "${MONERO_PROJECT_DIR}/src/wallet"
+    "${MONERO_PROJECT_DIR}/src/wallet/api"
+  )
+
   target_link_libraries(monero-java
     monero-cpp
     wallet_api
@@ -524,32 +601,6 @@ else()
 
 endif()
 
-target_include_directories(monero-java PUBLIC
-  "$ENV{JAVA_HOME}"
-  "$ENV{JAVA_HOME}/include"
-  "${Boost_INCLUDE_DIR}"
-  "${OPENSSL_INCLUDE_DIR}"
-  "${MONERO_CPP_DIR}/external/libsodium/include/sodium"
-  "${MONERO_CPP_DIR}/external/openssl-sdk/include"
-  "${MONERO_CPP_DIR}/src"
-  "${MONERO_PROJECT_DIR}/contrib/epee/include"
-  "${MONERO_PROJECT_DIR}/external"
-  "${MONERO_PROJECT_DIR}/external/easylogging++"
-  "${MONERO_PROJECT_DIR}/external/rapidjson/include"
-  "${MONERO_PROJECT_DIR}/src"
-  "${MONERO_PROJECT_DIR}/src/crypto"
-  "${MONERO_PROJECT_DIR}/src/crypto/crypto_ops_builder/include"
-  "${MONERO_PROJECT_DIR}/src/wallet"
-  "${MONERO_PROJECT_DIR}/src/wallet/api"
-)
-
-if(APPLE)
-  target_include_directories(monero-java PUBLIC "$ENV{JAVA_HOME}/include/darwin")
-elseif(WIN32)
-  target_include_directories(monero-java PUBLIC "$ENV{JAVA_HOME}/include/win32")
-else()
-  target_include_directories(monero-java PUBLIC "$ENV{JAVA_HOME}/include/linux")
-endif()
 
 if(WIN32)
   target_link_options(monero-java PUBLIC "-Wl,--enable-auto-import,--export-all-symbols")
@@ -559,11 +610,13 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   target_link_options(monero-java PRIVATE "-z" "noexecstack")
 endif()
 
+
 install(TARGETS monero-java
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Runtime
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Development
 )
+
 
 if(APPLE)
   add_custom_command(TARGET monero-java
