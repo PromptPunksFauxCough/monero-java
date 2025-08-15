@@ -27,20 +27,12 @@ jobs:
         distribution: "liberica"
         java-version: "21"
 
-    - name: Cache APT dependencies
-      id: cache-apt
-      uses: actions/cache@v3
+    - name: Install dependencies via apt-get and cache
+      uses: apt-get-install/apt-get-install@v1
+      id: install-and-cache
       with:
-        path: /var/cache/apt/archives
-        key: ${{ runner.os }}-apt-dependencies-v1
-        restore-keys: |
-          ${{ runner.os }}-apt-dependencies-
-
-    - name: Install dependencies via apt-get
-      if: steps.cache-apt.outputs.cache-hit != 'true'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y build-essential libboost-all-dev libssl-dev libzmq3-dev libsodium-dev unbound libunbound-dev liblzma-dev libreadline-dev libexpat1-dev qttools5-dev libhidapi-dev libusb-1.0-0-dev libprotobuf-dev doxygen graphviz libtool gperf libevent-dev pkg-config
+        packages: build-essential libboost-all-dev libssl-dev libzmq3-dev libsodium-dev unbound libunbound-dev liblzma-dev libreadline-dev libexpat1-dev qttools5-dev libhidapi-dev libusb-1.0-0-dev libprotobuf-dev doxygen graphviz libtool gperf libevent-dev pkg-config
+        cache-key: ${{ runner.os }}-apt-dependencies-v1
 
 
 #    - name: Configure and build (with debug flags)
