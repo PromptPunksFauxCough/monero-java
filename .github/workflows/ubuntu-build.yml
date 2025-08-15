@@ -32,11 +32,6 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y build-essential libboost-all-dev libssl-dev libzmq3-dev libsodium-dev unbound libunbound-dev liblzma-dev libreadline-dev libexpat1-dev qttools5-dev libhidapi-dev libusb-1.0-0-dev libprotobuf-dev doxygen graphviz libtool gperf libevent-dev pkg-config
 
-    - name: Inspect libunbound-dev package
-      run: |
-        dpkg -L libhidapi-dev libhidapi-hidraw0 libhidapi-libusb0
-#        dpkg -L libunbound-dev libunbound8 unbound
-
     - name: Cache APT dependencies
       uses: actions/cache@v3
       with:
@@ -45,21 +40,21 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-apt-
 
-    - name: Configure and build (with debug flags)
-      run: |
-        mkdir -p build-ubuntu
-        cd build-ubuntu
-        cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DCMAKE_FIND_DEBUG_MODE=ON --trace-expand
-        cmake --build . --parallel 1
-      env:
-        ACTIONS_STEP_DEBUG: true
-
-#    - name: Configure and build
+#    - name: Configure and build (with debug flags)
 #      run: |
 #        mkdir -p build-ubuntu
 #        cd build-ubuntu
-#        cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=OFF
+#        cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DCMAKE_FIND_DEBUG_MODE=ON --trace-expand
 #        cmake --build . --parallel 1
+#      env:
+#        ACTIONS_STEP_DEBUG: true
+
+    - name: Configure and build
+      run: |
+        mkdir -p build-ubuntu
+        cd build-ubuntu
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=OFF
+        cmake --build . --parallel 1
 
     - name: Prepare and package release artifacts
       # This step will only run if the workflow was triggered by a release
