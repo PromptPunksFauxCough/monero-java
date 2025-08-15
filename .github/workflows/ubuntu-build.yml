@@ -45,7 +45,7 @@ jobs:
       run: |
         mkdir -p build-ubuntu
         cd build-ubuntu
-        cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=OFF
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON
         cmake --build . --parallel 1
 
     - name: Prepare and package release artifacts
