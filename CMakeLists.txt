@@ -17,100 +17,236 @@ endif()
 if(NOT DEFINED ENV{JAVA_HOME} OR "$ENV{JAVA_HOME}" STREQUAL "")
   message(FATAL_ERROR "JAVA_HOME variable not set, e.g.: export JAVA_HOME=/path/to/jdk")
 endif()
+####################
+# Extra libraries
+####################
+
+if(BUILD_STATIC)
+
+  if (APPLE)
+    if (DEPENDS)
+      list(APPEND EXTRA_LIBRARIES "-framework Foundation -framework IOKit -framework AppKit")
+    else()
+      find_library(COREFOUNDATION CoreFoundation STATIC)
+      find_library(IOKIT IOKit STATIC)
+      find_library(APPKIT AppKit STATIC)
+      list(APPEND EXTRA_LIBRARIES ${IOKIT} ${COREFOUNDATION} ${APPKIT})
+    endif()
+  endif()
+  if (WIN32)
+    list(APPEND EXTRA_LIBRARIES setupapi)
+  endif()
+
+  message(STATUS EXTRA_LIBRARIES: ${EXTRA_LIBRARIES})
+
+else()
+
+  if (APPLE)
+    if (DEPENDS)
+      list(APPEND EXTRA_LIBRARIES "-framework Foundation -framework IOKit -framework AppKit")
+    else()
+      find_library(COREFOUNDATION CoreFoundation)
+      find_library(IOKIT IOKit)
+      find_library(APPKIT AppKit)
+      list(APPEND EXTRA_LIBRARIES ${IOKIT} ${COREFOUNDATION} ${APPKIT})
+    endif()
+  endif()
+  if (WIN32)
+    list(APPEND EXTRA_LIBRARIES setupapi)
+  endif()
+
+  message(STATUS EXTRA_LIBRARIES: ${EXTRA_LIBRARIES})
+
+endif()
 
 ############
 # Protobuf
 ############
 
-if (NOT APPLE)
-  find_path(Protobuf_INCLUDE_DIR NAMES google/protobuf/stubs/common.h)
-  find_library(Protobuf_LIBRARY NAMES protobuf STATIC)
-  find_program(Protobuf_PROTOC_EXECUTABLE NAMES protoc)
-  message(STATUS "Protobuf lib: ${Protobuf_LIBRARY}, inc: ${Protobuf_INCLUDE_DIR}, protoc: ${Protobuf_PROTOC_EXECUTABLE}")
+if(BUILD_STATIC)
+
+  if (NOT APPLE)
+    find_path(Protobuf_INCLUDE_DIR NAMES google/protobuf/stubs/common.h)
+    find_library(Protobuf_LIBRARY NAMES protobuf-lite protobuf STATIC)
+    find_program(Protobuf_PROTOC_EXECUTABLE NAMES protoc)
+    message(STATUS "Protobuf lib: ${Protobuf_LIBRARY}, inc: ${Protobuf_INCLUDE_DIR}, protoc: ${Protobuf_PROTOC_EXECUTABLE}")
+  endif()
+
+else()
+
+  if (NOT APPLE)
+    include(FindProtobuf)
+    find_package(Protobuf)
+    message(STATUS "Protobuf lib: ${Protobuf_LIBRARY}, inc: ${Protobuf_INCLUDE_DIR}, protoc: ${Protobuf_PROTOC_EXECUTABLE}")
+  endif()
+
 endif()
 
 ############
 # LibUSB
 ############
 
-find_path(LibUSB_INCLUDE_DIR NAMES libusb.h)
-find_library(LibUSB_LIBRARIES NAMES usb-1.0 libusb usb)
-message(STATUS "Found LibUSB headers at: ${LibUSB_INCLUDE_DIR}")
-message(STATUS "Found LibUSB library at: ${LibUSB_LIBRARIES}")
+if(BUILD_STATIC)
+
+  find_path(LibUSB_INCLUDE_DIR NAMES libusb.h)
+  find_library(LibUSB_LIBRARIES NAMES usb-1.0 libusb usb STATIC)
+  message(STATUS "Found LibUSB headers at: ${LibUSB_INCLUDE_DIR}")
+  message(STATUS "Found LibUSB library at: ${LibUSB_LIBRARIES}")
+
+else()
+
+  find_library(LibUSB_LIBRARIES NAMES usb-1.0 libusb usb)
+  message(STATUS "Found LibUSB headers at: ${LibUSB_INCLUDE_DIR}")
+  message(STATUS "Found LibUSB library at: ${LibUSB_LIBRARIES}")
+
+endif()
 
 ############
 # Boost
 ############
 
-set(Boost_NO_BOOST_CMAKE 1)
-set(Boost_USE_MULTITHREADED ON)
-find_package(Boost 1.58 QUIET REQUIRED COMPONENTS chrono date_time filesystem program_options regex serialization wserialization system thread)
-message(STATUS "Using Boost include dir at ${Boost_INCLUDE_DIR}")
+if(BUILD_STATIC)
+
+  set(Boost_NO_BOOST_CMAKE 1)
+  set(Boost_USE_MULTITHREADED ON)
+  find_package(Boost 1.58 QUIET REQUIRED COMPONENTS chrono date_time filesystem program_options regex serialization wserialization system thread STATIC)
+  message(STATUS "Using Boost include dir at ${Boost_INCLUDE_DIR}")
+
+else()
+
+  set(Boost_NO_BOOST_CMAKE 1)
+  set(Boost_USE_MULTITHREADED ON)
+  find_package(Boost 1.58 QUIET REQUIRED COMPONENTS chrono date_time filesystem program_options regex serialization wserialization system thread)
+  message(STATUS "Using Boost include dir at ${Boost_INCLUDE_DIR}")
+
+endif()
 
 ############
 # OpenSSL
 ############
 
-if (APPLE AND NOT IOS)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=default -std=c++14")
-  if (NOT OPENSSL_ROOT_DIR)
+if(BUILD_STATIC)
+
+  if (APPLE AND NOT IOS)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=default -std=c++14")
+    if (NOT OPENSSL_ROOT_DIR)
+        execute_process(COMMAND brew --prefix openssl
+          OUTPUT_VARIABLE OPENSSL_ROOT_DIR
+          OUTPUT_STRIP_TRAILING_WHITESPACE)
+      message(STATUS "Using OpenSSL found at ${OPENSSL_ROOT_DIR}")
+    endif()
+  endif()
+
+  if(STATIC AND NOT IOS)
+    if(UNIX)
+      set(OPENSSL_LIBRARIES "${OPENSSL_LIBRARIES};${CMAKE_DL_LIBS};${CMAKE_THREAD_LIBS_INIT}")
+    endif()
+  endif()
+
+  if (WIN32)
+    list(APPEND OPENSSL_LIBRARIES ws2_32 crypt32 bcrypt)
+  endif()
+
+  find_path(OPENSSL_INCLUDE_DIR NAMES openssl/ssl.h)
+  find_library(OPENSSL_SSL_LIBRARY NAMES ssl STATIC)
+  find_library(OPENSSL_CRYPTO_LIBRARY NAMES crypto STATIC)
+  set(OPENSSL_LIBRARIES ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY})
+  message(STATUS "Using OpenSSL include dir at ${OPENSSL_INCLUDE_DIR}")
+  message(STATUS "Using OpenSSL libraries at ${OPENSSL_LIBRARIES}")
+
+else()
+
+  if (APPLE AND NOT IOS)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=default -std=c++14")
+    if(NOT OPENSSL_ROOT_DIR)
       execute_process(COMMAND brew --prefix openssl
         OUTPUT_VARIABLE OPENSSL_ROOT_DIR
         OUTPUT_STRIP_TRAILING_WHITESPACE)
-    message(STATUS "Using OpenSSL found at ${OPENSSL_ROOT_DIR}")
+      message(STATUS "Using OpenSSL found at ${OPENSSL_ROOT_DIR}")
+    endif()
   endif()
-endif()
 
-find_path(OPENSSL_INCLUDE_DIR NAMES openssl/ssl.h)
-find_library(OPENSSL_SSL_LIBRARY NAMES ssl STATIC)
-find_library(OPENSSL_CRYPTO_LIBRARY NAMES crypto STATIC)
-set(OPENSSL_LIBRARIES ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY})
+  find_package(OpenSSL REQUIRED)
+  message(STATUS "Using OpenSSL include dir at ${OPENSSL_INCLUDE_DIR}")
 
-message(STATUS "Using OpenSSL include dir at ${OPENSSL_INCLUDE_DIR}")
-message(STATUS "Using OpenSSL libraries at ${OPENSSL_LIBRARIES}")
-
-if(STATIC AND NOT IOS)
-  if(UNIX)
+  if(STATIC AND NOT IOS AND UNIX)
     set(OPENSSL_LIBRARIES "${OPENSSL_LIBRARIES};${CMAKE_DL_LIBS};${CMAKE_THREAD_LIBS_INIT}")
   endif()
-endif()
 
-if (WIN32)
-  list(APPEND OPENSSL_LIBRARIES ws2_32 crypt32 bcrypt)
+  if(WIN32)
+    list(APPEND OPENSSL_LIBRARIES ws2_32 crypt32 bcrypt)
+  endif()
+
 endif()
 
 ############
 # libsodium
 ############
 
-find_path(SODIUM_INCLUDE_DIR NAMES sodium.h)
-find_library(SODIUM_LIBRARY NAMES sodium STATIC)
-message(STATUS "Found libsodium include dir at: ${SODIUM_INCLUDE_DIR}")
-message(STATUS "Found libsodium library at: ${SODIUM_LIBRARY}")
+if(BUILD_STATIC)
+
+  find_path(SODIUM_INCLUDE_DIR NAMES sodium.h)
+  find_library(SODIUM_LIBRARY NAMES sodium STATIC)
+  message(STATUS "Found libsodium include dir at: ${SODIUM_INCLUDE_DIR}")
+  message(STATUS "Found libsodium library at: ${SODIUM_LIBRARY}")
+
+else()
+
+  find_library(SODIUM_LIBRARY sodium REQUIRED)
+  message(STATUS "Using libsodium library at ${SODIUM_LIBRARY}")
+
+endif()
 
 ############
 # HIDAPI
 ############
 
-if(APPLE)
-  include_directories(SYSTEM /usr/include/malloc)
-  if(POLICY CMP0042)
-    cmake_policy(SET CMP0042 NEW)
-  endif()
-endif()
+if(BUILD_STATIC)
 
-find_path(HIDAPI_INCLUDE_DIR NAMES hidapi.h PATHS /usr/include/hidapi)
-find_library(HIDAPI_LIBRARY NAMES hidapi-libusb hidapi-hidraw STATIC)
-message(STATUS "Found HIDAPI include dir at: ${HIDAPI_INCLUDE_DIR}")
-message(STATUS "Found HIDAPI library at: ${HIDAPI_LIBRARY}")
+  if(APPLE)
+    include_directories(SYSTEM /usr/include/malloc)
+    if(POLICY CMP0042)
+      cmake_policy(SET CMP0042 NEW)
+    endif()
+  endif()
+
+  find_path(HIDAPI_INCLUDE_DIR NAMES hidapi.h PATHS /usr/include/hidapi)
+  find_library(HIDAPI_LIBRARY NAMES hidapi-libusb hidapi-hidraw STATIC)
+  message(STATUS "Found HIDAPI include dir at: ${HIDAPI_INCLUDE_DIR}")
+  message(STATUS "Found HIDAPI library at: ${HIDAPI_LIBRARY}")
+
+else()
+
+  if(APPLE)
+    include_directories(SYSTEM /usr/include/malloc)
+    if(POLICY CMP0042)
+      cmake_policy(SET CMP0042 NEW)
+    endif()
+  endif()
+
+  find_package(HIDAPI REQUIRED)
+  message(STATUS "Using HIDAPI include dir at: ${HIDAPI_INCLUDE_DIR}")
+
+endif()
 
 ############
 # Unbound
 ############
-find_path(UNBOUND_INCLUDE_DIR unbound.h)
-find_library(UNBOUND_LIBRARIES NAMES unbound libunbound)
-message(STATUS "Found UNBOUND include dir at: ${UNBOUND_INCLUDE_DIR}")
-message(STATUS "Found UNBOUND libraries at: ${UNBOUND_LIBRARIES}")
+
+if(BUILD_STATIC)
+
+  find_path(UNBOUND_INCLUDE_DIR unbound.h)
+  find_library(UNBOUND_LIBRARIES NAMES unbound libunbound STATIC)
+  message(STATUS "Found UNBOUND include dir at: ${UNBOUND_INCLUDE_DIR}")
+  message(STATUS "Found UNBOUND libraries at: ${UNBOUND_LIBRARIES}")
+
+else()
+
+  find_library(UNBOUND_LIBRARIES NAMES unbound libunbound)
+  message(STATUS "Found UNBOUND include dir at: ${UNBOUND_INCLUDE_DIR}")
+  message(STATUS "Found UNBOUND libraries at: ${UNBOUND_LIBRARIES}")
+
+endif()
 
 ##########################
 # Monero-cpp fetch
@@ -339,7 +475,44 @@ endif()
 # JNI library setup
 ##########################
 set(MONERO_JNI_SRC_FILES src/main/cpp/monero_jni_bridge.cpp)
-add_library(monero-java SHARED ${MONERO_JNI_SRC_FILES})
+
+if(BUILD_STATIC)
+
+  add_library(monero-java-static STATIC ${MONERO_JNI_SRC_FILES})
+
+  target_link_libraries(monero-java-static
+    monero-cpp
+    wallet_api
+    ${Boost_LIBRARIES}
+    ${OPENSSL_LIBRARIES}
+    ${SODIUM_LIBRARY}
+    ${UNBOUND_LIBRARIES}
+    ${HIDAPI_LIBRARY}
+    ${LibUSB_LIBRARIES}
+    ${EXTRA_LIBRARIES}
+    ${JNI_LIBRARIES}
+  )
+
+  add_library(monero-java SHARED monero-java-static)
+  
+else()
+
+  add_library(monero-java SHARED ${MONERO_JNI_SRC_FILES})
+
+  target_link_libraries(monero-java
+    monero-cpp
+    wallet_api
+    ${Boost_LIBRARIES}
+    ${OPENSSL_LIBRARIES}
+    ${SODIUM_LIBRARY}
+    ${UNBOUND_LIBRARIES}
+    ${HIDAPI_LIBRARY}
+    ${LibUSB_LIBRARIES}
+    ${EXTRA_LIBRARIES}
+    ${JNI_LIBRARIES}
+  )
+
+endif()
 
 target_include_directories(monero-java PUBLIC
   "$ENV{JAVA_HOME}"
@@ -367,14 +540,6 @@ elseif(WIN32)
 else()
   target_include_directories(monero-java PUBLIC "$ENV{JAVA_HOME}/include/linux")
 endif()
-
-target_link_libraries(monero-java
-  monero-cpp
-  wallet_api
-  ${Boost_LIBRARIES}
-  ${OPENSSL_LIBRARIES}
-  ${EXTRA_LIBRARIES}
-)
 
 if(WIN32)
   target_link_options(monero-java PUBLIC "-Wl,--enable-auto-import,--export-all-symbols")
