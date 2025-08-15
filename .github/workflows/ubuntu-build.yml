@@ -64,15 +64,12 @@ jobs:
         
         # Copy the monero-java library to the distribution directory
         cp build-ubuntu/libmonero-java.so dist/ubuntu-22.04/
-
-        # Copy the monero-cpp library from its specific build location
-        # cp external/monero-cpp/build/libmonero-cpp.so dist/ubuntu-22.04/
-
-        # Create zip and tar.gz archives from the distribution directory
-        cd dist/ubuntu-22.04
-        zip monero-java_ubuntu.zip libmonero-java.so # libmonero-cpp.so
-        tar -czvf monero-java_ubuntu.tar.gz libmonero-java.so # libmonero-cpp.so
         
+        # Create zip and tar.gz archives from the distribution directory.
+        # This is more robust as it's run from the project root.
+        zip -r dist/ubuntu-22.04/monero-java_ubuntu.zip dist/ubuntu-22.04/
+        tar -czvf dist/ubuntu-22.04/monero-java_ubuntu.tar.gz -C dist/ubuntu-22.04 .
+          
     - name: Upload Release Assets
       if: github.event_name == 'release'
       uses: actions/upload-release-asset@v1
