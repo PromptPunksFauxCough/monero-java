@@ -57,8 +57,8 @@ jobs:
           cp external/monero-cpp/build/libmonero-cpp.so dist/ubuntu-22.04/
         fi
         
-        zip -r dist/ubuntu-22.04/monero-java_ubuntu.zip dist/ubuntu-22.04/
-        tar -czvf dist/ubuntu-22.04/monero-java_ubuntu.tar.gz -C dist/ubuntu-22.04 .
+        zip -r dist/monero-java_ubuntu.zip dist/ubuntu-22.04/
+        tar -czvf dist/monero-java_ubuntu.tar.gz -C dist/ubuntu-22.04 .
           
     - name: Upload Release Assets
       uses: actions/upload-release-asset@v1
