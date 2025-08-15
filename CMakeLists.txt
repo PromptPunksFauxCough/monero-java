@@ -499,7 +499,8 @@ if(BUILD_STATIC)
     ${JNI_LIBRARIES}
   )
 
-  add_library(monero-java SHARED monero-java-static)
+  add_library(monero-java SHARED)
+  target_link_libraries(monero-java PRIVATE monero-java-static)
   
 else()
 
