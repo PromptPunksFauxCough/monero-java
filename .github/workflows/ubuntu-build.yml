@@ -47,13 +47,15 @@ jobs:
         cd build-ubuntu
         cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON
         cmake --build . --parallel 1
-
     - name: Prepare and package release artifacts
       run: |
         mkdir -p dist/ubuntu-22.04
         
         cp build-ubuntu/libmonero-java.so dist/ubuntu-22.04/
-        cp external/monero-cpp/build/libmonero-cpp.so dist/ubuntu-22.04/
+
+        if [ -f "external/monero-cpp/build/libmonero-cpp.so" ]; then
+          cp external/monero-cpp/build/libmonero-cpp.so dist/ubuntu-22.04/
+        fi
         
         zip -r dist/ubuntu-22.04/monero-java_ubuntu.zip dist/ubuntu-22.04/
         tar -czvf dist/ubuntu-22.04/monero-java_ubuntu.tar.gz -C dist/ubuntu-22.04 .
