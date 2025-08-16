@@ -419,6 +419,9 @@ function(register_monero_cpp_lib name relpath)
   add_dependencies(${name} monero_ext)
 endfunction()
 
+add_dependencies(monero_cpp_build monero_ext)
+
+
 # Register Monero static libs (as needed)
 register_monero_cpp_lib(libwallet                lib/libwallet.a)
 
