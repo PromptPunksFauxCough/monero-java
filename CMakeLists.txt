@@ -536,7 +536,7 @@ if(BUILD_STATIC)
     "${MONERO_PROJECT_DIR}/src/wallet/api"
   )
 
-  target_link_libraries(monero-java-static
+  target_link_libraries(monero-java-static PUBLIC
     monero-cpp
     wallet_api
     ${Boost_LIBRARIES}
