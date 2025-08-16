@@ -64,7 +64,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: run-${{ github.run_id }}
-        release_name: CI Build #${{ github.run_number }} (${{github.sha.substring(0,7) }})
+        release_name: CI Build ${{ github.run_number }} (${{github.sha.substring(0,7) }})
         draft: false
         prerelease: true
 
