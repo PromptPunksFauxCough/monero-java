@@ -36,9 +36,8 @@ jobs:
       with:
         path: |
           ~/.ccache
-          build-ubuntu
           external/monero-cpp/external/monero-project
-        key: ${{ runner.os }}-build-${{ hashFiles('**/CMakeLists.txt') }}-${{ hashFiles('**/patches/monero-cpp.patch') }}
+        key: ${{ runner.os }}-build-${{ hashFiles('**/CMakeLists.txt') }}
         restore-keys: |
           ${{ runner.os }}-build-${{ hashFiles('**/CMakeLists.txt') }}
           ${{ runner.os }}-build-
@@ -54,7 +53,6 @@ jobs:
 #        ACTIONS_STEP_DEBUG: true
 
     - name: Configure and build
-      if: steps.cache-cmake.outputs.cache-hit != 'true'
       run: |
         mkdir -p build-ubuntu
         cd build-ubuntu
