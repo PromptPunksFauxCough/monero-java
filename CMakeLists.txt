@@ -455,6 +455,64 @@ endif()
 
 add_dependencies(monero-cpp monero_cpp_build)
 
+# NOTE: This logic was once duplicated below for reasons lost to time.
+# It has since been vanquished. May future devs tread lightly.
+#
+# A forgotten path lies beneath.  
+# Only those who comment wisely may proceed.
+#
+# Defeated the final boss (portable binary builds). Retrieved the forgotten key (redundant Boost/OpenSSL logic) from the shadows of CMake. The gate is open.
+#
+# Turns out the final boss was just guarding a locked door. Removed duplicate dependency logic. Game now proceeds as intended.
+#
+# Commented 28 lines. Unlocked the build. CMake can be pain. No painz, no gainz.
+#
+# A second path revealed.  
+# The key was always there.  
+# The build now links.  
+#
+# --------------------------------------------------------------------------------
+## 🧙‍♂️ The Forgotten Path
+#
+# In the days of yore, Boost and OpenSSL were summoned twice.  
+# The logic was duplicated, the reasons obscured by time and haste.  
+# One brave dev ventured into the depths of CMake, wielding only `#` and sarcasm.  
+# The path was cleared. The build now links.
+#
+# Let this be a warning:  
+# Comment wisely.  
+# Link cautiously.  
+# And never trust a final boss without checking the room for hidden doors.
+#
+###########################
+## Boost and OpenSSL
+###########################
+#set(Boost_NO_BOOST_CMAKE 1)
+#set(Boost_USE_MULTITHREADED ON)
+#find_package(Boost 1.58 QUIET REQUIRED COMPONENTS chrono date_time filesystem program_options regex serialization wserialization system thread)
+#message(STATUS "Using Boost include dir at ${Boost_INCLUDE_DIR}")
+#
+#if(APPLE AND NOT IOS)
+#  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=default")
+#  if(NOT OPENSSL_ROOT_DIR)
+#    execute_process(COMMAND brew --prefix openssl
+#      OUTPUT_VARIABLE OPENSSL_ROOT_DIR
+#      OUTPUT_STRIP_TRAILING_WHITESPACE)
+#    message(STATUS "Using OpenSSL found at ${OPENSSL_ROOT_DIR}")
+#  endif()
+#endif()
+#
+#find_package(OpenSSL REQUIRED)
+#message(STATUS "Using OpenSSL include dir at ${OPENSSL_INCLUDE_DIR}")
+#
+#if(STATIC AND NOT IOS AND UNIX)
+#  set(OPENSSL_LIBRARIES "${OPENSSL_LIBRARIES};${CMAKE_DL_LIBS};${CMAKE_THREAD_LIBS_INIT}")
+#endif()
+#
+#if(WIN32)
+#  list(APPEND OPENSSL_LIBRARIES ws2_32 crypt32 bcrypt)
+#endif()
+
 ##########################
 # Platform extras
 ##########################
@@ -527,9 +585,9 @@ if(BUILD_STATIC)
   add_library(monero-java SHARED "${CMAKE_CURRENT_BINARY_DIR}/monero-java_wrapper.cpp")
 
 #  target_link_libraries(monero-java PRIVATE monero-java-static)
-  target_link_libraries(monero-java
-    "-Wl,--whole-archive" monero-java-static "-Wl,--no-whole-archive"
-  )
+  target_link_libraries(monero-java "-Wl,--whole-archive" monero-java-static "-Wl,--no-whole-archive")
+
+  target_link_options(monero-java PRIVATE "-static-libstdc++" "-static-libgcc")
 
 
 else()
