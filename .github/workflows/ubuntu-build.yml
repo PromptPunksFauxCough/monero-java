@@ -57,7 +57,7 @@ jobs:
         mkdir -p build-ubuntu
         cd build-ubuntu
         cmake ..  -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON
-        cmake --build . --parallel 1
+        cmake --build . --parallel 4
 
     - name: Show ccache stats
       run: ccache -s
