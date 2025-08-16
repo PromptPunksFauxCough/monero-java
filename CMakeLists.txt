@@ -248,6 +248,7 @@ if(BUILD_STATIC)
 
 else()
 
+  find_path(UNBOUND_INCLUDE_DIR unbound.h)
   find_library(UNBOUND_LIBRARIES NAMES unbound libunbound)
   message(STATUS "Found UNBOUND include dir at: ${UNBOUND_INCLUDE_DIR}")
   message(STATUS "Found UNBOUND libraries at: ${UNBOUND_LIBRARIES}")
