@@ -57,33 +57,15 @@ jobs:
         zip  -r dist/monero-java_ubuntu.zip       dist/ubuntu-22.04/
         tar  -czvf dist/monero-java_ubuntu.tar.gz  -C dist/ubuntu-22.04 .
 
-    - name: Create or update release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Generate release
+      uses: softprops/action-gh-release@v1
       with:
         tag_name: run-${{ github.run_id }}
-        release_name: CI Build #${{ github.run_number }}
+        name: CI Build ${{ github.run_id }}
         draft: false
         prerelease: true
-
-    - name: Upload ZIP asset
-      uses: actions/upload-release-asset@v1
+        files: |
+          dist/*.zip
+          dist/*.tar.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: dist/monero-java_ubuntu.zip
-        asset_name: monero-java_ubuntu.zip
-        asset_content_type: application/zip
-
-    - name: Upload TAR.GZ asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: dist/monero-java_ubuntu.tar.gz
-        asset_name: monero-java_ubuntu.tar.gz
-        asset_content_type: application/gzip
