@@ -51,20 +51,20 @@ jobs:
 #      env:
 #        ACTIONS_STEP_DEBUG: true
 
+    - name: Configure and Build (Dynamic)
+      run: |
+        ccache -C
+        mkdir -p build-ubuntu-dynamic
+        cd build-ubuntu-dynamic
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=OFF -DCMAKE_FIND_DEBUG_MODE=ON -DCMAKE_VERBOSE_MAKEFILE=ON --trace-expand
+        cmake --build . --parallel 2
+
     - name: Configure and Build (Portable)
       run: |
         ccache -C
         mkdir -p build-ubuntu-portable
         cd build-ubuntu-portable
         cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DCMAKE_FIND_DEBUG_MODE=ON -DBOOST_ROOT=/opt/boost-pic -DBoost_NO_SYSTEM_PATHS=ON -DBOOST_INCLUDEDIR=/opt/boost-pic/include -DBOOST_LIBRARYDIR=/opt/boost-pic/lib --trace-expand
-        cmake --build . --parallel 4
-
-    - name: Configure and Build (Dynamic)
-      run: |
-        ccache -C
-        mkdir -p build-ubuntu-dynamic
-        cd build-ubuntu-dynamic
-        cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=OFF -DCMAKE_FIND_DEBUG_MODE=ON --trace-expand
         cmake --build . --parallel 4
 
     - name: Prepare and package release artifacts
