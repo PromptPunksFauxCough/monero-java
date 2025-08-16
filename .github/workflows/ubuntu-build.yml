@@ -30,34 +30,34 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y build-essential libboost-all-dev libssl-dev libzmq3-dev libsodium-dev unbound libunbound-dev liblzma-dev libreadline-dev libexpat1-dev qttools5-dev libhidapi-dev libusb-1.0-0-dev libprotobuf-dev doxygen graphviz libtool gperf libevent-dev pkg-config ccache
 
-    - name: Build and Install Boost (w/PIC Support)
-      run: |
-        mkdir -p /opt/boost-pic
-        curl -LO https://archives.boost.io/release/1.74.0/source/boost_1_74_0.zip
-        unzip boost_1_74_0.zip
-        cd boost_1_74_0
-        ./bootstrap.sh --prefix=/opt/boost-pic --with-toolset=gcc
-        ./b2 cxxflags="-fPIC" linkflags="-fPIC" --with-chrono --with-date_time --with-filesystem \
-             --with-program_options --with-regex --with-serialization --with-system \
-             --with-thread --with-locale toolset=gcc link=static runtime-link=static \
-             threading=multi --prefix=/opt/boost-pic install
-
-    - name: Configure and build (with debug flags)
-      if: steps.cache-cmake.outputs.cache-hit != 'true'
-      run: |
-        mkdir -p build-ubuntu
-        cd build-ubuntu
-        cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DCMAKE_FIND_DEBUG_MODE=ON -DBOOST_ROOT=/opt/boost-pic -DBoost_NO_SYSTEM_PATHS=ON -DBOOST_INCLUDEDIR=/opt/boost-pic/include -DBOOST_LIBRARYDIR=/opt/boost-pic/lib --trace-expand
-        cmake --build . --parallel 4
-      env:
-        ACTIONS_STEP_DEBUG: true
-
-#    - name: Configure and build
+#    - name: Build and Install Boost (w/PIC Support)
+#      run: |
+#        mkdir -p /opt/boost-pic
+#        curl -LO https://archives.boost.io/release/1.74.0/source/boost_1_74_0.zip
+#        unzip boost_1_74_0.zip
+#        cd boost_1_74_0
+#        ./bootstrap.sh --prefix=/opt/boost-pic --with-toolset=gcc
+#        ./b2 cxxflags="-fPIC" linkflags="-fPIC" --with-chrono --with-date_time --with-filesystem \
+#             --with-program_options --with-regex --with-serialization --with-system \
+#             --with-thread --with-locale toolset=gcc link=static runtime-link=static \
+#             threading=multi --prefix=/opt/boost-pic install
+#
+#    - name: Configure and build (with debug flags)
+#      if: steps.cache-cmake.outputs.cache-hit != 'true'
 #      run: |
 #        mkdir -p build-ubuntu
 #        cd build-ubuntu
-#        cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON
+#        cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DCMAKE_FIND_DEBUG_MODE=ON -DBOOST_ROOT=/opt/boost-pic -DBoost_NO_SYSTEM_PATHS=ON -DBOOST_INCLUDEDIR=/opt/boost-pic/include -DBOOST_LIBRARYDIR=/opt/boost-pic/lib --trace-expand
 #        cmake --build . --parallel 4
+#      env:
+#        ACTIONS_STEP_DEBUG: true
+
+    - name: Configure and build
+      run: |
+        mkdir -p build-ubuntu
+        cd build-ubuntu
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=OFF -DCMAKE_FIND_DEBUG_MODE=ON --trace-expand
+        cmake --build . --parallel 4
 
     - name: Prepare and package release artifacts
       run: |
