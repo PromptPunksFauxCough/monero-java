@@ -57,7 +57,7 @@ jobs:
         mkdir -p build-ubuntu-dynamic
         cd build-ubuntu-dynamic
         cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=OFF -DCMAKE_FIND_DEBUG_MODE=ON -DCMAKE_VERBOSE_MAKEFILE=ON --trace-expand
-        cmake --build . --parallel 2
+        cmake --build . --parallel 4
 
     - name: Configure and Build (Portable)
       run: |
