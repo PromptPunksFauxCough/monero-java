@@ -35,8 +35,9 @@ jobs:
       uses: actions/cache@v4
       with:
         path: |
-          external/monero-cpp/external/monero-project
           ~/.ccache
+          build-ubuntu
+          external/monero-cpp/external/monero-project
         key: ${{ runner.os }}-build-${{ hashFiles('**/CMakeLists.txt') }}-${{ hashFiles('**/patches/monero-cpp.patch') }}
         restore-keys: |
           ${{ runner.os }}-build-${{ hashFiles('**/CMakeLists.txt') }}
