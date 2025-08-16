@@ -37,7 +37,7 @@ jobs:
         unzip boost_1_74_0.zip
         cd boost_1_74_0
         ./bootstrap.sh --prefix=/opt/boost-pic --with-toolset=gcc
-        ./b2 cxxflags="-fPIC" linkflags="-fPIC" -with-chrono --with-date_time --with-filesystem \
+        ./b2 cxxflags="-fPIC" linkflags="-fPIC" --with-chrono --with-date_time --with-filesystem \
              --with-program_options --with-regex --with-serialization --with-system \
              --with-thread --with-locale toolset=gcc link=static runtime-link=static \
              threading=multi --prefix=/opt/boost-pic install
