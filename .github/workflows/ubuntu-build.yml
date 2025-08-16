@@ -30,18 +30,6 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y build-essential libboost-all-dev libssl-dev libzmq3-dev libsodium-dev unbound libunbound-dev liblzma-dev libreadline-dev libexpat1-dev qttools5-dev libhidapi-dev libusb-1.0-0-dev libprotobuf-dev doxygen graphviz libtool gperf libevent-dev pkg-config ccache
 
-    - name: Cache Source and Ccache
-      id: cache-cmake
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.ccache
-          external/monero-cpp/external/monero-project
-        key: ${{ runner.os }}-build-${{ hashFiles('**/CMakeLists.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-build-${{ hashFiles('**/CMakeLists.txt') }}
-          ${{ runner.os }}-build-
-
 #    - name: Configure and build (with debug flags)
 #      if: steps.cache-cmake.outputs.cache-hit != 'true'
 #      run: |
@@ -56,11 +44,8 @@ jobs:
       run: |
         mkdir -p build-ubuntu
         cd build-ubuntu
-        cmake ..  -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=OFF
         cmake --build . --parallel 4
-
-    - name: Show ccache stats
-      run: ccache -s
 
     - name: Prepare and package release artifacts
       run: |
