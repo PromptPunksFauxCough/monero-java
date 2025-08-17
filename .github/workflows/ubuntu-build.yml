@@ -3,7 +3,7 @@ name: Ubuntu x86_64 (Portable & Dynamic)
 on:
   push:
     branches:
-      - fail
+      - static
 
 jobs:
   build-ubuntu:
