@@ -406,7 +406,7 @@ ExternalProject_Add(monero_cpp_build
     -DMONERO_PROJECT_BUILD=${MONERO_PROJECT_DIR}/build/release
 
   UPDATE_COMMAND ""
-#  PATCH_COMMAND ""
+  INSTALL_COMMAND ""
   PATCH_COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/patches/monero-cpp.patch ${MONERO_CPP_DIR} && patch -p1 -d ${MONERO_CPP_DIR} -i ${MONERO_CPP_DIR}/monero-cpp.patch
   CONFIGURE_HANDLED_BY_BUILD ON
 )
