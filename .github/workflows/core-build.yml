@@ -30,6 +30,7 @@ jobs:
             echo "ARCH=arm64" >> $GITHUB_ENV
           else
             echo "ARCH=amd64" >> $GITHUB_ENV
+          fi
 
       - name: Setup JDK
         uses: actions/setup-java@v4
