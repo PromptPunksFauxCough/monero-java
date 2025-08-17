@@ -8,90 +8,106 @@ on:
 jobs:
   build-ubuntu:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        build_type: [Portable, Dynamic]
+
+    env:
+      JAVA_HOME: /opt/hostedtoolcache/Java_Liberica_jdk/21.0.8-12/x64
+      JAVA_HOME_21_X64: /opt/hostedtoolcache/Java_Liberica_jdk/21.0.8-12/x64
+
     steps:
-    - name: Checkout source
-      uses: actions/checkout@v4
-      with:
-        submodules: false
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          submodules: false
 
-    - name: Use CMake 3.24
-      uses: lukka/get-cmake@latest
-      with:
-        cmakeVersion: "3.24.0"
+      - name: Use CMake 3.24
+        uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "3.24.0"
 
-    - name: Setup JDK
-      uses: actions/setup-java@v4
-      with:
-        distribution: "liberica"
-        java-version: "21"
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: "liberica"
+          java-version: "21"
 
-    - name: Install dependencies via apt-get
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y build-essential libboost-all-dev libssl-dev libzmq3-dev libsodium-dev unbound libunbound-dev liblzma-dev libreadline-dev libexpat1-dev qttools5-dev libhidapi-dev libusb-1.0-0-dev libprotobuf-dev doxygen graphviz libtool gperf libevent-dev pkg-config ccache
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential libboost-all-dev libssl-dev libzmq3-dev libsodium-dev \
+            unbound libunbound-dev liblzma-dev libreadline-dev libexpat1-dev \
+            qttools5-dev libhidapi-dev libusb-1.0-0-dev libprotobuf-dev \
+            doxygen graphviz libtool gperf libevent-dev pkg-config ccache
 
-    - name: Build and Install Boost (w/PIC Support)
-      run: |
-        mkdir -p /opt/boost-pic
-        curl -LO https://archives.boost.io/release/1.74.0/source/boost_1_74_0.zip
-        unzip boost_1_74_0.zip
-        cd boost_1_74_0
-        ./bootstrap.sh --prefix=/opt/boost-pic --with-toolset=gcc
-        ./b2 cxxflags="-fPIC" linkflags="-fPIC" --with-chrono --with-date_time --with-filesystem \
-             --with-program_options --with-regex --with-serialization --with-system \
-             --with-thread --with-locale toolset=gcc link=static runtime-link=static \
-             threading=multi --prefix=/opt/boost-pic install
+      - name: Build and Install Boost (w/PIC Support) [Portable Only]
+        if: matrix.build_type == 'portable'
+        run: |
+          mkdir -p /opt/boost-pic
+          curl -LO https://archives.boost.io/release/1.74.0/source/boost_1_74_0.zip
+          unzip boost_1_74_0.zip
+          cd boost_1_74_0
+          ./bootstrap.sh --prefix=/opt/boost-pic --with-toolset=gcc
+          ./b2 cxxflags="-fPIC" linkflags="-fPIC" --with-chrono --with-date_time --with-filesystem \
+              --with-program_options --with-regex --with-serialization --with-system \
+              --with-thread --with-locale toolset=gcc link=static runtime-link=static \
+              threading=multi --prefix=/opt/boost-pic install
 
-#    - name: Configure and build (with debug flags)
-#      run: |
-#        mkdir -p build-ubuntu
-#        cd build-ubuntu
-#        cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DCMAKE_FIND_DEBUG_MODE=ON -DCMAKE_VERBOSE_MAKEFILE=ON -DBOOST_ROOT=/opt/boost-pic -DBoost_NO_SYSTEM_PATHS=ON -DBOOST_INCLUDEDIR=/opt/boost-pic/include -DBOOST_LIBRARYDIR=/opt/boost-pic/lib --trace-expand
-#        cmake --build . --parallel 4
-#      env:
-#        ACTIONS_STEP_DEBUG: true
+      - name: Configure and Build (${{ matrix.build_type }})
+        run: |
+          ccache -C
+          mkdir -p build-${{ matrix.build_type }}
+          cmake -S . -B build-${{ matrix.build_type }} \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_STATIC=${{ matrix.build_type == 'portable' && 'ON' || 'OFF' }} \
+            -DBOOST_ROOT=${{ matrix.build_type == 'portable' && '/opt/boost-pic' || '' }} \
+            -DBoost_NO_SYSTEM_PATHS=${{ matrix.build_type == 'portable' && 'ON' || 'OFF' }} \
+            -DBOOST_INCLUDEDIR=${{ matrix.build_type == 'portable' && '/opt/boost-pic/include' || '' }} \
+            -DBOOST_LIBRARYDIR=${{ matrix.build_type == 'portable' && '/opt/boost-pic/lib' || '' }}
+          cmake --build build-${{ matrix.build_type }} --parallel 4
 
-    - name: Configure and Build (Dynamic)
-      run: |
-        ccache -C
-        mkdir -p build-ubuntu-dynamic
-        cd build-ubuntu-dynamic
-        cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=OFF
-        cmake --build . --parallel 4
+#      - name: Configure and Build (Debug) (${{ matrix.build_type }})
+#        run: |
+#          ccache -C
+#          mkdir -p build-${{ matrix.build_type }}
+#          cmake -S . -B build-${{ matrix.build_type }} \
+#            -DCMAKE_BUILD_TYPE=Release \
+#            -DBUILD_STATIC=${{ matrix.build_type == 'portable' && 'ON' || 'OFF' }} \
+#            -DBOOST_ROOT=${{ matrix.build_type == 'portable' && '/opt/boost-pic' || '' }} \
+#            -DBoost_NO_SYSTEM_PATHS=${{ matrix.build_type == 'portable' && 'ON' || 'OFF' }} \
+#            -DBOOST_INCLUDEDIR=${{ matrix.build_type == 'portable' && '/opt/boost-pic/include' || '' }} \
+#            -DBOOST_LIBRARYDIR=${{ matrix.build_type == 'portable' && '/opt/boost-pic/lib' || '' }} \
+#            -DCMAKE_FIND_DEBUG_MODE=ON -DCMAKE_VERBOSE_MAKEFILE=ON --trace-expand
+#          cmake --build build-${{ matrix.build_type }} --parallel 4
 
-    - name: Prepare and Package Release Artifacts (Dynamic)
-      run: |
-        find ~/ -name libmonero-cpp.so
-        mkdir -p dist/ubuntu-22.04-dynamic
-        cp build-ubuntu-dynamic/libmonero-java.so            dist/ubuntu-22.04-dynamic/
-        cp external/monero-cpp/build/libmonero-cpp.so        dist/ubuntu-22.04-dynamic/
-        zip  -r dist/monero-java_ubuntu-dynamic.zip          dist/ubuntu-22.04-dynamic/
-        tar  -czvf dist/monero-java_ubuntu-dynamic.tar.gz -C dist/ubuntu-22.04-dynamic .
+      - name: Package Release Artifacts
+        run: |
+          mkdir -p dist/${{ matrix.build_type }}
+          cp build-${{ matrix.build_type }}/libmonero-java.so dist/${{ matrix.build_type }}/
+          if [ "${{ matrix.build_type }}" = "dynamic" ]; then
+            cp external/monero-cpp/build/libmonero-cpp.so dist/${{ matrix.build_type }}/
+          fi
+          zip -r dist/monero-java_${{ matrix.build_type }}.zip dist/${{ matrix.build_type }}/
+          tar -czvf dist/monero-java_${{ matrix.build_type }}.tar.gz -C dist/${{ matrix.build_type }} .
 
-#    - name: Configure and Build (Portable)
-#      run: |
-#        ccache -C
-#        mkdir -p build-ubuntu-portable
-#        cd build-ubuntu-portable
-#        cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DBOOST_ROOT=/opt/boost-pic -DBoost_NO_SYSTEM_PATHS=ON -DBOOST_INCLUDEDIR=/opt/boost-pic/include -DBOOST_LIBRARYDIR=/opt/boost-pic/lib
-#        cmake --build . --parallel 4
-#
-#    - name: Prepare and Package Release Artifacts (Dynamic)
-#      run: |
-#        mkdir -p dist/ubuntu-22.04-portable
-#        cp build-ubuntu-portable/libmonero-java.so            dist/ubuntu-22.04-portable/
-#        zip  -r dist/monero-java_ubuntu-portable.zip          dist/ubuntu-22.04-portable/
-#        tar  -czvf dist/monero-java_ubuntu-portable.tar.gz -C dist/ubuntu-22.04-portable .
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: monero-java-${{ matrix.build_type }}
+          path: dist/${{ matrix.build_type }}/*
 
-    - name: Generate release
-      uses: softprops/action-gh-release@v1
-      with:
-        tag_name: run-${{ github.run_id }}
-        name: CI Build ${{ github.run_id }}
-        draft: false
-        prerelease: true
-        files: |
-          dist/*.zip
-          dist/*.tar.gz
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Generate GitHub Release
+        if: github.ref == 'refs/heads/static'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: run-${{ github.run_id }}
+          name: CI Build ${{ github.run_id }}
+          draft: false
+          prerelease: true
+          files: |
+            dist/*.zip
+            dist/*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
