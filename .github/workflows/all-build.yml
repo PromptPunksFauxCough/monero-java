@@ -1,27 +1,36 @@
 name: monero-java (Build All)
 
-env:
-  ENABLE_LINUX: true
-  ENABLE_MACOS: false
-  ENABLE_WINDOWS: false
-
 on:
   workflow_dispatch:
+    inputs:
+      ENABLE_LINUX:
+        description: "Enable Linux builds"
+        required: false
+        default: "true"
+      ENABLE_MACOS:
+        description: "Enable macOS builds"
+        required: false
+        default: "false"
+      ENABLE_WINDOWS:
+        description: "Enable Windows builds"
+        required: false
+        default: "false"
   push:
-    branches: [static]
+    branches:
+      - static
 
 jobs:
 # 🐧 Linux Builds
 
   build-linux-amd64:
-    if: env.ENABLE_LINUX == 'true'
+    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.ENABLE_LINUX == 'true') }}
     uses: ./.github/workflows/core-build.yml
     with:
       runner: ubuntu-22.04
       variant: linux_amd64
 
   build-linux-arm64:
-    if: env.ENABLE_LINUX == 'true'
+    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.ENABLE_LINUX == 'true') }}
     uses: ./.github/workflows/core-build.yml
     with:
       runner: ubuntu-22.04-arm
@@ -30,14 +39,14 @@ jobs:
 # 🍎 macOS Builds
 
   build-macos-amd64:
-    if: env.ENABLE_MACOS == 'true'
+    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.ENABLE_MACOS == 'true') }}
     uses: ./.github/workflows/core-build.yml
     with:
       runner: macos-13
       variant: macos_amd64
 
   build-macos-arm64:
-    if: env.ENABLE_MACOS == 'true'
+    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.ENABLE_MACOS == 'true') }}
     uses: ./.github/workflows/core-build.yml
     with:
       runner: macos-14
@@ -46,14 +55,14 @@ jobs:
 # 🪟 Windows Builds
 
   build-windows-amd64:
-    if: env.ENABLE_WINDOWS == 'true'
+    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.ENABLE_WINDOWS == 'true') }}
     uses: ./.github/workflows/core-build.yml
     with:
       runner: windows-2022
       variant: windows_amd64
 
   build-windows-arm64:
-    if: env.ENABLE_WINDOWS == 'true'
+    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.ENABLE_WINDOWS == 'true') }}
     uses: ./.github/workflows/core-build.yml
     with:
       runner: windows-11-arm
