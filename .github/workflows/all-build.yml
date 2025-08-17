@@ -1,10 +1,5 @@
 name: monero-java (Build All)
 
-vars:
-  ENABLE_LINUX: true
-  ENABLE_MACOS: false
-  ENABLE_WINDOWS: false
-
 on:
   push:
     branches:
@@ -14,14 +9,14 @@ jobs:
 # 🐧 Linux Builds
 
   build-linux-amd64:
-    if: ${{ vars.ENABLE_LINUX == 'true' }}
+    if: ${{ true }}
     uses: ./.github/workflows/core-build.yml
     with:
       runner: ubuntu-22.04
       variant: linux_amd64
 
   build-linux-arm64:
-    if: ${{ vars.ENABLE_LINUX == 'true' }}
+    if: ${{ true }}
     uses: ./.github/workflows/core-build.yml
     with:
       runner: ubuntu-22.04-arm
@@ -30,14 +25,14 @@ jobs:
 # 🍎 macOS Builds
 
   build-macos-amd64:
-    if: ${{ vars.ENABLE_MACOS == 'true' }}
+    if: ${{ false }}
     uses: ./.github/workflows/core-build.yml
     with:
       runner: macos-13
       variant: macos_amd64
 
   build-macos-arm64:
-    if: ${{ vars.ENABLE_MACOS == 'true' }}
+    if: ${{ false }}
     uses: ./.github/workflows/core-build.yml
     with:
       runner: macos-14
@@ -46,14 +41,14 @@ jobs:
 # 🪟 Windows Builds
 
   build-windows-amd64:
-    if: ${{ vars.ENABLE_WINDOWS == 'true' }}
+    if: ${{ false }}
     uses: ./.github/workflows/core-build.yml
     with:
       runner: windows-2022
       variant: windows_amd64
 
   build-windows-arm64:
-    if: ${{ vars.ENABLE_WINDOWS == 'true' }}
+    if: ${{ false }}
     uses: ./.github/workflows/core-build.yml
     with:
       runner: windows-11-arm
