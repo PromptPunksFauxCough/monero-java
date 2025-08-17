@@ -46,7 +46,7 @@ jobs:
 #      run: |
 #        mkdir -p build-ubuntu
 #        cd build-ubuntu
-#        cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DCMAKE_FIND_DEBUG_MODE=ON -DBOOST_ROOT=/opt/boost-pic -DBoost_NO_SYSTEM_PATHS=ON -DBOOST_INCLUDEDIR=/opt/boost-pic/include -DBOOST_LIBRARYDIR=/opt/boost-pic/lib --trace-expand
+#        cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DCMAKE_FIND_DEBUG_MODE=ON -DCMAKE_VERBOSE_MAKEFILE=ON -DBOOST_ROOT=/opt/boost-pic -DBoost_NO_SYSTEM_PATHS=ON -DBOOST_INCLUDEDIR=/opt/boost-pic/include -DBOOST_LIBRARYDIR=/opt/boost-pic/lib --trace-expand
 #        cmake --build . --parallel 4
 #      env:
 #        ACTIONS_STEP_DEBUG: true
@@ -56,29 +56,32 @@ jobs:
         ccache -C
         mkdir -p build-ubuntu-dynamic
         cd build-ubuntu-dynamic
-        cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=OFF -DCMAKE_FIND_DEBUG_MODE=ON -DCMAKE_VERBOSE_MAKEFILE=ON --trace-expand
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=OFF
         cmake --build . --parallel 4
 
-    - name: Configure and Build (Portable)
+    - name: Prepare and Package Release Artifacts (Dynamic)
       run: |
-        ccache -C
-        mkdir -p build-ubuntu-portable
-        cd build-ubuntu-portable
-        cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DCMAKE_FIND_DEBUG_MODE=ON -DBOOST_ROOT=/opt/boost-pic -DBoost_NO_SYSTEM_PATHS=ON -DBOOST_INCLUDEDIR=/opt/boost-pic/include -DBOOST_LIBRARYDIR=/opt/boost-pic/lib --trace-expand
-        cmake --build . --parallel 4
-
-    - name: Prepare and package release artifacts
-      run: |
-        mkdir -p dist/ubuntu-22.04-portable
-        cp build-ubuntu-portable/libmonero-java.so      dist/ubuntu-22.04-portable
-        zip  -r dist/monero-java_ubuntu-portable.zip       dist/ubuntu-22.04-portable/
-        tar  -czvf dist/monero-java_ubuntu-portable.tar.gz  -C dist/ubuntu-22.04-portable .
-
+        find ~/ -name libmonero-cpp.so
         mkdir -p dist/ubuntu-22.04-dynamic
-        cp build-ubuntu-dynamic/libmonero-java.so       dist/ubuntu-22.04-dynamic/
-        cp external/monero-cpp/build/libmonero-cpp.so dist/ubuntu-22.04-dynamic/
-        zip  -r dist/monero-java_ubuntu-dynamic.zip       dist/ubuntu-22.04-dynamic/
-        tar  -czvf dist/monero-java_ubuntu-dynamic.tar.gz  -C dist/ubuntu-22.04-dynamic .
+        cp build-ubuntu-dynamic/libmonero-java.so            dist/ubuntu-22.04-dynamic/
+        cp external/monero-cpp/build/libmonero-cpp.so        dist/ubuntu-22.04-dynamic/
+        zip  -r dist/monero-java_ubuntu-dynamic.zip          dist/ubuntu-22.04-dynamic/
+        tar  -czvf dist/monero-java_ubuntu-dynamic.tar.gz -C dist/ubuntu-22.04-dynamic .
+
+#    - name: Configure and Build (Portable)
+#      run: |
+#        ccache -C
+#        mkdir -p build-ubuntu-portable
+#        cd build-ubuntu-portable
+#        cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DBOOST_ROOT=/opt/boost-pic -DBoost_NO_SYSTEM_PATHS=ON -DBOOST_INCLUDEDIR=/opt/boost-pic/include -DBOOST_LIBRARYDIR=/opt/boost-pic/lib
+#        cmake --build . --parallel 4
+#
+#    - name: Prepare and Package Release Artifacts (Dynamic)
+#      run: |
+#        mkdir -p dist/ubuntu-22.04-portable
+#        cp build-ubuntu-portable/libmonero-java.so            dist/ubuntu-22.04-portable/
+#        zip  -r dist/monero-java_ubuntu-portable.zip          dist/ubuntu-22.04-portable/
+#        tar  -czvf dist/monero-java_ubuntu-portable.tar.gz -C dist/ubuntu-22.04-portable .
 
     - name: Generate release
       uses: softprops/action-gh-release@v1
