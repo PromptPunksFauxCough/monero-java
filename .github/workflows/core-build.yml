@@ -189,7 +189,7 @@ jobs:
             -DCMAKE_OSX_ARCHITECTURES=$OSX_ARCH \
             -DCMAKE_BUILD_TYPE=Release \
             -DBUILD_STATIC=OFF \
-            -DCMAKE_FIND_DEBUG_MODE=ON -DCMAKE_VERBOSE_MAKEFILE=ON --trace-expand
+            -DCMAKE_FIND_DEBUG_MODE=ON # -DCMAKE_VERBOSE_MAKEFILE=ON --trace-expand
           cmake --build build-${{ matrix.build_type }} --parallel 4
 
       - name: Package Release Artifacts - (Linux)
