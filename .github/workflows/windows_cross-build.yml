@@ -1,0 +1,112 @@
+name: Windows CrossCompilation (PoC)
+
+on:
+  push:
+    branches:
+      - '**'
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+      
+      # Using apt on Ubuntu to install the MinGW toolchain and other dependencies.
+      # This is much simpler and more reliable than the MSYS2 setup.
+      - name: Install MinGW-w64 and Dependencies via apt
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            g++-mingw-w64-x86-64 \
+            git \
+            cmake \
+            make \
+            unzip \
+            ccache \
+            gettext \
+            curl \
+            libboost-all-dev \
+            libssl-dev \
+            libzmq5-dev \
+            libsodium-dev \
+            libhidapi-dev \
+            libunbound-dev \
+            libprotobuf-dev \
+            libusb-1.0-0-dev \
+            libreadline-dev
+      
+      # The manual Boost build is still necessary if you want a specific version not in apt,
+      # but it runs on a more stable environment.
+      - name: Download and Extract Boost
+        run: |
+          curl -LO https://archives.boost.io/release/1.74.0/source/boost_1_74_0.zip
+          unzip boost_1_74_0.zip
+      
+      - name: Build and Install Boost
+        run: |
+          cd boost_1_74_0
+          ./bootstrap.sh --prefix=/mingw64 --with-toolset=gcc
+          ./b2 --with-chrono --with-date_time --with-filesystem --with-program_options \
+            --with-regex --with-serialization --with-system --with-thread \
+            --with-locale toolset=gcc link=static threading=multi address-model=64 \
+            --prefix=/mingw64 install
+
+      # This CMake toolchain file tells CMake how to find the cross-compiler and libraries
+      # on Ubuntu. It's the key to making the build work without explicit paths.
+      - name: Create MinGW-w64 Toolchain File
+        run: |
+          echo "set(CMAKE_SYSTEM_NAME Windows)" > mingw-w64-x86_64-toolchain.cmake
+          echo "set(TOOLCHAIN_PREFIX x86_64-w64-mingw32)" >> mingw-w64-x86_64-toolchain.cmake
+          echo "set(CMAKE_C_COMPILER   \${TOOLCHAIN_PREFIX}-gcc)" >> mingw-w64-x86_64-toolchain.cmake
+          echo "set(CMAKE_CXX_COMPILER \${TOOLCHAIN_PREFIX}-g++)" >> mingw-w64-x86_64-toolchain.cmake
+          echo "set(CMAKE_RC_COMPILER  \${TOOLCHAIN_PREFIX}-windres)" >> mingw-w64-x86_64-toolchain.cmake
+          echo "set(CMAKE_FIND_ROOT_PATH \"/usr/\${TOOLCHAIN_PREFIX}\")" >> mingw-w64-x86_64-toolchain.cmake
+          echo "set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)" >> mingw-w64-x86_64-toolchain.cmake
+          echo "set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)" >> mingw-w64-x86_64-toolchain.cmake
+          echo "set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)" >> mingw-w64-x86_64-toolchain.cmake
+
+      # The rest of your workflow steps are largely unchanged, but with a few tweaks.
+      # Caching is now for the Ubuntu environment.
+      - name: Restore ccache cache
+        id: cache-ccache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: ${{ runner.os }}-ccache-${{ hashFiles('**/*.cpp', '**/*.c', '**/*.h', '**/CMakeLists.txt') }}
+          restore-keys: ${{ runner.os }}-ccache-
+
+      - name: Configure Git for line endings
+        run: git config --global core.autocrlf input
+
+      # The CMake configure step now uses the toolchain file.
+      # This means it's much cleaner and no longer needs a massive list of explicit paths.
+      # The monero-project's internal CMake will handle finding its dependencies.
+      - name: CMake Configure
+        run: |
+          cmake -B build \
+            -DCMAKE_TOOLCHAIN_FILE=./mingw-w64-x86_64-toolchain.cmake \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DSTATIC_BUILD=ON \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+
+      - name: CMake Build
+        run: |
+          cmake --build build --config Release --parallel 4
+
+      - name: Save ccache cache
+        if: always() && steps.cache-ccache.outputs.cache-hit != 'true'
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: ${{ runner.os }}-ccache-${{ hashFiles('**/*.cpp', '**/*.c', '**/*.h', '**/CMakeLists.txt') }}
+      
+      # The rest of your workflow steps for packaging and uploading artifacts remain the same.
+      # You can now delete all the commented-out and redundant sections from your old file.
