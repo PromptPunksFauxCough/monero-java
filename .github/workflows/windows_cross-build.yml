@@ -47,19 +47,19 @@ jobs:
       - name: Build and Install Boost
         run: |
           cd boost_1_74_0
-          ./bootstrap.sh --prefix=$GITHUB_WORKSPACE/boost_install --with-toolset=gcc
+          ./bootstrap.sh --prefix=$GITHUB_WORKSPACE/boost_install --with-toolset=gcc-mingw
           ./b2 --with-chrono --with-date_time --with-filesystem --with-program_options \
             --with-regex --with-serialization --with-system --with-thread \
-            --with-locale toolset=gcc link=static threading=multi address-model=64 \
+            --with-locale toolset=gcc-mingw link=static threading=multi address-model=64 \
             --prefix=$GITHUB_WORKSPACE/boost_install install -j 4
 
       - name: Create MinGW-w64 Toolchain File
         run: |
           echo "set(CMAKE_SYSTEM_NAME Windows)" > mingw-w64-x86_64-toolchain.cmake
           echo "set(TOOLCHAIN_PREFIX x86_64-w64-mingw32)" >> mingw-w64-x86_64-toolchain.cmake
-          echo "set(CMAKE_C_COMPILER   ${TOOLCHAIN_PREFIX}-gcc)" >> mingw-w64-x86_64-toolchain.cmake
+          echo "set(CMAKE_C_COMPILER ${TOOLCHAIN_PREFIX}-gcc)" >> mingw-w64-x86_64-toolchain.cmake
           echo "set(CMAKE_CXX_COMPILER ${TOOLCHAIN_PREFIX}-g++)" >> mingw-w64-x86_64-toolchain.cmake
-          echo "set(CMAKE_RC_COMPILER  ${TOOLCHAIN_PREFIX}-windres)" >> mingw-w64-x86_64-toolchain.cmake
+          echo "set(CMAKE_RC_COMPILER ${TOOLCHAIN_PREFIX}-windres)" >> mingw-w64-x86_64-toolchain.cmake
           echo "set(CMAKE_FIND_ROOT_PATH \"/usr/${TOOLCHAIN_PREFIX}\")" >> mingw-w64-x86_64-toolchain.cmake
           echo "set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)" >> mingw-w64-x86_64-toolchain.cmake
           echo "set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)" >> mingw-w64-x86_64-toolchain.cmake
@@ -84,7 +84,8 @@ jobs:
             -DSTATIC_BUILD=ON \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-            -DBOOST_ROOT=$GITHUB_WORKSPACE/boost_install
+            -DBOOST_ROOT=$GITHUB_WORKSPACE/boost_install \
+            -DBoost_LIBRARY_DIR_HINTS=$GITHUB_WORKSPACE/boost_install/lib
 
       - name: CMake Build
         run: |
