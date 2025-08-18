@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.24)
 project(monero-java-jni)
 
+option(BUILD_STATIC "Build a monolithic JNI wrapper that statically links monero-cpp and all its dependencies." OFF)
+
 include(FetchContent)
 include(ExternalProject)
 
@@ -14,6 +16,244 @@ endif()
 
 if(NOT DEFINED ENV{JAVA_HOME} OR "$ENV{JAVA_HOME}" STREQUAL "")
   message(FATAL_ERROR "JAVA_HOME variable not set, e.g.: export JAVA_HOME=/path/to/jdk")
+endif()
+
+####################
+# Extra libraries
+####################
+
+if(BUILD_STATIC)
+
+  if (APPLE)
+    if (DEPENDS)
+      list(APPEND EXTRA_LIBRARIES "-framework Foundation -framework IOKit -framework AppKit")
+    else()
+      find_library(COREFOUNDATION CoreFoundation STATIC)
+      find_library(IOKIT IOKit STATIC)
+      find_library(APPKIT AppKit STATIC)
+      list(APPEND EXTRA_LIBRARIES ${IOKIT} ${COREFOUNDATION} ${APPKIT})
+    endif()
+  endif()
+  if (WIN32)
+    list(APPEND EXTRA_LIBRARIES setupapi)
+  endif()
+
+  message(STATUS EXTRA_LIBRARIES: ${EXTRA_LIBRARIES})
+
+else()
+
+  if (APPLE)
+    if (DEPENDS)
+      list(APPEND EXTRA_LIBRARIES "-framework Foundation -framework IOKit -framework AppKit")
+    else()
+      find_library(COREFOUNDATION CoreFoundation)
+      find_library(IOKIT IOKit)
+      find_library(APPKIT AppKit)
+      list(APPEND EXTRA_LIBRARIES ${IOKIT} ${COREFOUNDATION} ${APPKIT})
+    endif()
+  endif()
+  if (WIN32)
+    list(APPEND EXTRA_LIBRARIES setupapi)
+  endif()
+
+  message(STATUS EXTRA_LIBRARIES: ${EXTRA_LIBRARIES})
+
+endif()
+
+############
+# Protobuf
+############
+
+if(BUILD_STATIC)
+
+  if (NOT APPLE)
+    find_path(Protobuf_INCLUDE_DIR NAMES google/protobuf/stubs/common.h)
+    find_library(Protobuf_LIBRARY NAMES protobuf-lite protobuf STATIC)
+    find_program(Protobuf_PROTOC_EXECUTABLE NAMES protoc)
+    message(STATUS "Protobuf lib: ${Protobuf_LIBRARY}, inc: ${Protobuf_INCLUDE_DIR}, protoc: ${Protobuf_PROTOC_EXECUTABLE}")
+  endif()
+
+else()
+
+  if (NOT APPLE)
+    include(FindProtobuf)
+    find_package(Protobuf)
+    message(STATUS "Protobuf lib: ${Protobuf_LIBRARY}, inc: ${Protobuf_INCLUDE_DIR}, protoc: ${Protobuf_PROTOC_EXECUTABLE}")
+  endif()
+
+endif()
+
+############
+# LibUSB
+############
+
+if(BUILD_STATIC)
+
+  find_path(LibUSB_INCLUDE_DIR NAMES libusb.h)
+  find_library(LibUSB_LIBRARIES NAMES usb-1.0 libusb usb STATIC)
+  message(STATUS "Found LibUSB headers at: ${LibUSB_INCLUDE_DIR}")
+  message(STATUS "Found LibUSB library at: ${LibUSB_LIBRARIES}")
+
+else()
+
+  find_library(LibUSB_LIBRARIES NAMES usb-1.0 libusb usb)
+  message(STATUS "Found LibUSB headers at: ${LibUSB_INCLUDE_DIR}")
+  message(STATUS "Found LibUSB library at: ${LibUSB_LIBRARIES}")
+
+endif()
+
+############
+# Boost
+############
+
+if(BUILD_STATIC)
+
+  set(Boost_NO_BOOST_CMAKE 1)
+  set(Boost_USE_MULTITHREADED ON)
+  set(Boost_USE_STATIC_LIBS ON)
+  find_package(Boost 1.58 QUIET REQUIRED COMPONENTS chrono date_time filesystem program_options regex serialization wserialization system thread)
+  message(STATUS "Using Boost include dir at ${Boost_INCLUDE_DIR}")
+
+else()
+
+  set(Boost_NO_BOOST_CMAKE 1)
+  set(Boost_USE_MULTITHREADED ON)
+  find_package(Boost 1.58 QUIET REQUIRED COMPONENTS chrono date_time filesystem program_options regex serialization wserialization system thread)
+  message(STATUS "Using Boost include dir at ${Boost_INCLUDE_DIR}")
+
+endif()
+
+############
+# OpenSSL
+############
+
+if(BUILD_STATIC)
+
+  if (APPLE AND NOT IOS)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=default -std=c++14")
+    if (NOT OPENSSL_ROOT_DIR)
+        execute_process(COMMAND brew --prefix openssl
+          OUTPUT_VARIABLE OPENSSL_ROOT_DIR
+          OUTPUT_STRIP_TRAILING_WHITESPACE)
+      message(STATUS "Using OpenSSL found at ${OPENSSL_ROOT_DIR}")
+    endif()
+  endif()
+
+  if(STATIC AND NOT IOS)
+    if(UNIX)
+      set(OPENSSL_LIBRARIES "${OPENSSL_LIBRARIES};${CMAKE_DL_LIBS};${CMAKE_THREAD_LIBS_INIT}")
+    endif()
+  endif()
+
+  if (WIN32)
+    list(APPEND OPENSSL_LIBRARIES ws2_32 crypt32 bcrypt)
+  endif()
+
+  find_path(OPENSSL_INCLUDE_DIR NAMES openssl/ssl.h)
+  find_library(OPENSSL_SSL_LIBRARY NAMES ssl STATIC)
+  find_library(OPENSSL_CRYPTO_LIBRARY NAMES crypto STATIC)
+  set(OPENSSL_LIBRARIES ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY})
+  message(STATUS "Using OpenSSL include dir at ${OPENSSL_INCLUDE_DIR}")
+  message(STATUS "Using OpenSSL libraries at ${OPENSSL_LIBRARIES}")
+
+else()
+
+  if (APPLE AND NOT IOS)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=default -std=c++14")
+    if(NOT OPENSSL_ROOT_DIR)
+      execute_process(COMMAND brew --prefix openssl
+        OUTPUT_VARIABLE OPENSSL_ROOT_DIR
+        OUTPUT_STRIP_TRAILING_WHITESPACE)
+      message(STATUS "Using OpenSSL found at ${OPENSSL_ROOT_DIR}")
+    endif()
+  endif()
+
+  find_package(OpenSSL REQUIRED)
+  message(STATUS "Using OpenSSL include dir at ${OPENSSL_INCLUDE_DIR}")
+
+  if(STATIC AND NOT IOS AND UNIX)
+    set(OPENSSL_LIBRARIES "${OPENSSL_LIBRARIES};${CMAKE_DL_LIBS};${CMAKE_THREAD_LIBS_INIT}")
+  endif()
+
+  if(WIN32)
+    list(APPEND OPENSSL_LIBRARIES ws2_32 crypt32 bcrypt)
+  endif()
+
+endif()
+
+############
+# libsodium
+############
+
+if(BUILD_STATIC)
+
+  find_path(SODIUM_INCLUDE_DIR NAMES sodium.h)
+  find_library(SODIUM_LIBRARY NAMES sodium STATIC)
+  message(STATUS "Found libsodium include dir at: ${SODIUM_INCLUDE_DIR}")
+  message(STATUS "Found libsodium library at: ${SODIUM_LIBRARY}")
+
+else()
+
+  find_library(SODIUM_LIBRARY sodium REQUIRED)
+  message(STATUS "Using libsodium library at ${SODIUM_LIBRARY}")
+
+endif()
+
+############
+# HIDAPI
+############
+
+if(BUILD_STATIC)
+
+  if(APPLE)
+    include_directories(SYSTEM /usr/include/malloc)
+    if(POLICY CMP0042)
+      cmake_policy(SET CMP0042 NEW)
+    endif()
+  endif()
+
+  find_path(HIDAPI_INCLUDE_DIR NAMES hidapi.h PATHS /usr/include/hidapi)
+  find_library(HIDAPI_LIBRARY NAMES hidapi-libusb hidapi-hidraw STATIC)
+  message(STATUS "Found HIDAPI include dir at: ${HIDAPI_INCLUDE_DIR}")
+  message(STATUS "Found HIDAPI library at: ${HIDAPI_LIBRARY}")
+
+else()
+
+  if(APPLE)
+    include_directories(SYSTEM /usr/include/malloc)
+    if(POLICY CMP0042)
+      cmake_policy(SET CMP0042 NEW)
+    endif()
+  endif()
+
+#  find_package(HIDAPI REQUIRED)
+#  message(STATUS "Using HIDAPI include dir at: ${HIDAPI_INCLUDE_DIR}")
+  find_path(HIDAPI_INCLUDE_DIR NAMES hidapi.h PATHS /usr/include/hidapi)
+  find_library(HIDAPI_LIBRARY NAMES hidapi-libusb hidapi-hidraw)
+  message(STATUS "Using HIDAPI include dir at: ${HIDAPI_INCLUDE_DIR}")
+  message(STATUS "Using HIDAPI library at: ${HIDAPI_LIBRARY}")
+  
+
+endif()
+
+############
+# Unbound
+############
+
+if(BUILD_STATIC)
+
+  find_path(UNBOUND_INCLUDE_DIR unbound.h)
+  find_library(UNBOUND_LIBRARIES NAMES unbound libunbound STATIC)
+  message(STATUS "Found UNBOUND include dir at: ${UNBOUND_INCLUDE_DIR}")
+  message(STATUS "Found UNBOUND libraries at: ${UNBOUND_LIBRARIES}")
+
+else()
+
+  find_path(UNBOUND_INCLUDE_DIR unbound.h)
+  find_library(UNBOUND_LIBRARIES NAMES unbound libunbound)
+  message(STATUS "Found UNBOUND include dir at: ${UNBOUND_INCLUDE_DIR}")
+  message(STATUS "Found UNBOUND libraries at: ${UNBOUND_LIBRARIES}")
+
 endif()
 
 ##########################
@@ -55,6 +295,9 @@ ExternalProject_Add(monero_ext
   UPDATE_DISCONNECTED 1
   CMAKE_ARGS
     # General Build Options
+    -DCMAKE_SYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR}
+    -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
+    -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
     -DBUILD_SHARED_LIBS=OFF
     -DBUILD_GUI=OFF
     -DCMAKE_INSTALL_PREFIX=${MONERO_PROJECT_DIR}/build/install
@@ -93,7 +336,6 @@ ExternalProject_Add(monero_ext
     -DLIBUNWIND_LIBRARIES=${LIBUNWIND_LIBRARIES}
     -DLIBUNWIND_INCLUDE_DIR=${LIBUNWIND_INCLUDE_DIR}
     -DBacktrace_LIBRARY=${Backtrace_LIBRARY}
-    -DBacktrace_LIBRARIES=${Backtrace_LIBRARIES}
     -DBacktrace_INCLUDE_DIR=${Backtrace_INCLUDE_DIR}
     -DProtobuf_PROTOC_EXECUTABLE=${Protobuf_PROTOC_EXECUTABLE}
     -DProtobuf_LIBRARY=${Protobuf_LIBRARY}
@@ -120,7 +362,10 @@ ExternalProject_Add(monero_cpp_build
   BINARY_DIR ${MONERO_CPP_DIR}/build
   CMAKE_ARGS
     # General Build Options
-    -DCMAKE_BUILD_TYPE=Release
+    -DCMAKE_SYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR}
+    -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
+    -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+    -DBUILD_STATIC=${BUILD_STATIC}
     -DCMAKE_INSTALL_PREFIX=${MONERO_CPP_DIR}/install
 
     # Dependency Root Directories
@@ -157,7 +402,6 @@ ExternalProject_Add(monero_cpp_build
     -DLIBUNWIND_LIBRARIES=${LIBUNWIND_LIBRARIES}
     -DLIBUNWIND_INCLUDE_DIR=${LIBUNWIND_INCLUDE_DIR}
     -DBacktrace_LIBRARY=${Backtrace_LIBRARY}
-    -DBacktrace_LIBRARIES=${Backtrace_LIBRARIES}
     -DBacktrace_INCLUDE_DIR=${Backtrace_INCLUDE_DIR}
     -DProtobuf_ROOT_DIR=${Protobuf_ROOT_DIR}
     -DProtobuf_PROTOC_EXECUTABLE=${Protobuf_PROTOC_EXECUTABLE}
@@ -167,7 +411,8 @@ ExternalProject_Add(monero_cpp_build
     -DMONERO_PROJECT_BUILD=${MONERO_PROJECT_DIR}/build/release
 
   UPDATE_COMMAND ""
-  PATCH_COMMAND ""
+  INSTALL_COMMAND ""
+  PATCH_COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/patches/monero-cpp.patch ${MONERO_CPP_DIR} && patch -p1 -d ${MONERO_CPP_DIR} -i ${MONERO_CPP_DIR}/monero-cpp.patch
   CONFIGURE_HANDLED_BY_BUILD ON
 )
 
@@ -179,52 +424,102 @@ function(register_monero_cpp_lib name relpath)
   add_dependencies(${name} monero_ext)
 endfunction()
 
+add_dependencies(monero_cpp_build monero_ext)
+
+
 # Register Monero static libs (as needed)
 register_monero_cpp_lib(libwallet                lib/libwallet.a)
 
-add_library(monero-cpp SHARED IMPORTED GLOBAL)
+if (BUILD_STATIC)
 
-if(APPLE)
-  set_target_properties(monero-cpp PROPERTIES IMPORTED_LOCATION "${MONERO_CPP_DIR}/build/libmonero-cpp.dylib")
-elseif(WIN32)
-  set_target_properties(monero-cpp PROPERTIES
-    IMPORTED_LOCATION "${MONERO_CPP_DIR}/build/libmonero-cpp.dll"
-    IMPORTED_IMPLIB "${MONERO_CPP_DIR}/build/libmonero-cpp.dll.a"
-  )
+  add_library(monero-cpp STATIC IMPORTED GLOBAL)
+
+  if(APPLE)
+    set_target_properties(monero-cpp PROPERTIES IMPORTED_LOCATION "${MONERO_CPP_DIR}/build/libmonero-cpp.a")
+  elseif(WIN32)
+    set_target_properties(monero-cpp PROPERTIES
+      IMPORTED_LOCATION "${MONERO_CPP_DIR}/build/libmonero-cpp.lib"
+    )
+  else()
+    set_target_properties(monero-cpp PROPERTIES IMPORTED_LOCATION "${MONERO_CPP_DIR}/build/libmonero-cpp.a")
+  endif()
+
 else()
-  set_target_properties(monero-cpp PROPERTIES IMPORTED_LOCATION "${MONERO_CPP_DIR}/build/libmonero-cpp.so")
+
+  add_library(monero-cpp SHARED IMPORTED GLOBAL)
+
+  if(APPLE)
+    set_target_properties(monero-cpp PROPERTIES IMPORTED_LOCATION "${MONERO_CPP_DIR}/build/libmonero-cpp.dylib")
+  elseif(WIN32)
+    set_target_properties(monero-cpp PROPERTIES
+      IMPORTED_LOCATION "${MONERO_CPP_DIR}/build/libmonero-cpp.dll"
+      IMPORTED_IMPLIB "${MONERO_CPP_DIR}/build/libmonero-cpp.dll.a"
+    )
+  else()
+    set_target_properties(monero-cpp PROPERTIES IMPORTED_LOCATION "${MONERO_CPP_DIR}/build/libmonero-cpp.so")
+  endif()
+
 endif()
 
 add_dependencies(monero-cpp monero_cpp_build)
 
-##########################
-# Boost and OpenSSL
-##########################
-set(Boost_NO_BOOST_CMAKE 1)
-set(Boost_USE_MULTITHREADED ON)
-find_package(Boost 1.58 QUIET REQUIRED COMPONENTS chrono date_time filesystem program_options regex serialization wserialization system thread)
-message(STATUS "Using Boost include dir at ${Boost_INCLUDE_DIR}")
-
-if(APPLE AND NOT IOS)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=default")
-  if(NOT OPENSSL_ROOT_DIR)
-    execute_process(COMMAND brew --prefix openssl
-      OUTPUT_VARIABLE OPENSSL_ROOT_DIR
-      OUTPUT_STRIP_TRAILING_WHITESPACE)
-    message(STATUS "Using OpenSSL found at ${OPENSSL_ROOT_DIR}")
-  endif()
-endif()
-
-find_package(OpenSSL REQUIRED)
-message(STATUS "Using OpenSSL include dir at ${OPENSSL_INCLUDE_DIR}")
-
-if(STATIC AND NOT IOS AND UNIX)
-  set(OPENSSL_LIBRARIES "${OPENSSL_LIBRARIES};${CMAKE_DL_LIBS};${CMAKE_THREAD_LIBS_INIT}")
-endif()
-
-if(WIN32)
-  list(APPEND OPENSSL_LIBRARIES ws2_32 crypt32 bcrypt)
-endif()
+# NOTE: This logic was once duplicated below for reasons lost to time.
+# It has since been vanquished. May future devs tread lightly.
+#
+# A forgotten path lies beneath.  
+# Only those who comment wisely may proceed.
+#
+# Defeated the final boss (portable binary builds). Retrieved the forgotten key (redundant Boost/OpenSSL logic) from the shadows of CMake. The gate is open.
+#
+# Turns out the final boss was just guarding a locked door. Removed duplicate dependency logic. Game now proceeds as intended.
+#
+# Commented 28 lines. Unlocked the build. CMake can be pain. No painz, no gainz.
+#
+# A second path revealed.  
+# The key was always there.  
+# The build now links.  
+#
+# --------------------------------------------------------------------------------
+## 🧙‍♂️ The Forgotten Path
+#
+# In the days of yore, Boost and OpenSSL were summoned twice.  
+# The logic was duplicated, the reasons obscured by time and haste.  
+# One brave dev ventured into the depths of CMake, wielding only `#` and sarcasm.  
+# The path was cleared. The build now links.
+#
+# Let this be a warning:  
+# Comment wisely.  
+# Link cautiously.  
+# And never trust a final boss without checking the room for hidden doors.
+#
+###########################
+## Boost and OpenSSL
+###########################
+#set(Boost_NO_BOOST_CMAKE 1)
+#set(Boost_USE_MULTITHREADED ON)
+#find_package(Boost 1.58 QUIET REQUIRED COMPONENTS chrono date_time filesystem program_options regex serialization wserialization system thread)
+#message(STATUS "Using Boost include dir at ${Boost_INCLUDE_DIR}")
+#
+#if(APPLE AND NOT IOS)
+#  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=default")
+#  if(NOT OPENSSL_ROOT_DIR)
+#    execute_process(COMMAND brew --prefix openssl
+#      OUTPUT_VARIABLE OPENSSL_ROOT_DIR
+#      OUTPUT_STRIP_TRAILING_WHITESPACE)
+#    message(STATUS "Using OpenSSL found at ${OPENSSL_ROOT_DIR}")
+#  endif()
+#endif()
+#
+#find_package(OpenSSL REQUIRED)
+#message(STATUS "Using OpenSSL include dir at ${OPENSSL_INCLUDE_DIR}")
+#
+#if(STATIC AND NOT IOS AND UNIX)
+#  set(OPENSSL_LIBRARIES "${OPENSSL_LIBRARIES};${CMAKE_DL_LIBS};${CMAKE_THREAD_LIBS_INIT}")
+#endif()
+#
+#if(WIN32)
+#  list(APPEND OPENSSL_LIBRARIES ws2_32 crypt32 bcrypt)
+#endif()
 
 ##########################
 # Platform extras
@@ -243,42 +538,112 @@ endif()
 # JNI library setup
 ##########################
 set(MONERO_JNI_SRC_FILES src/main/cpp/monero_jni_bridge.cpp)
-add_library(monero-java SHARED ${MONERO_JNI_SRC_FILES})
 
-target_include_directories(monero-java PUBLIC
-  "$ENV{JAVA_HOME}"
-  "$ENV{JAVA_HOME}/include"
-  "${Boost_INCLUDE_DIR}"
-  "${OPENSSL_INCLUDE_DIR}"
-  "${MONERO_CPP_DIR}/external/libsodium/include/sodium"
-  "${MONERO_CPP_DIR}/external/openssl-sdk/include"
-  "${MONERO_CPP_DIR}/src"
-  "${MONERO_PROJECT_DIR}/contrib/epee/include"
-  "${MONERO_PROJECT_DIR}/external"
-  "${MONERO_PROJECT_DIR}/external/easylogging++"
-  "${MONERO_PROJECT_DIR}/external/rapidjson/include"
-  "${MONERO_PROJECT_DIR}/src"
-  "${MONERO_PROJECT_DIR}/src/crypto"
-  "${MONERO_PROJECT_DIR}/src/crypto/crypto_ops_builder/include"
-  "${MONERO_PROJECT_DIR}/src/wallet"
-  "${MONERO_PROJECT_DIR}/src/wallet/api"
-)
+find_path(JNI_INCLUDE_DIR NAMES jni.h PATHS "$ENV{JAVA_HOME}/include")
+find_library(JNI_LIBRARY NAMES jawt jvm PATHS "$ENV{JAVA_HOME}/lib" "$ENV{JAVA_HOME}/jre/lib")
+list(APPEND JNI_LIBRARIES ${JNI_LIBRARY})
 
-if(APPLE)
-  target_include_directories(monero-java PUBLIC "$ENV{JAVA_HOME}/include/darwin")
-elseif(WIN32)
-  target_include_directories(monero-java PUBLIC "$ENV{JAVA_HOME}/include/win32")
+
+if(BUILD_STATIC)
+
+  add_library(monero-java-static STATIC ${MONERO_JNI_SRC_FILES})
+
+  if(APPLE)
+    target_include_directories(monero-java-static PUBLIC "$ENV{JAVA_HOME}/include/darwin")
+  elseif(WIN32)
+    target_include_directories(monero-java-static PUBLIC "$ENV{JAVA_HOME}/include/win32")
+  else()
+    target_include_directories(monero-java-static PUBLIC "$ENV{JAVA_HOME}/include/linux")
+  endif()
+
+  target_include_directories(monero-java-static PUBLIC
+    "$ENV{JAVA_HOME}"
+    "$ENV{JAVA_HOME}/include"
+    "${Boost_INCLUDE_DIR}"
+    "${OPENSSL_INCLUDE_DIR}"
+    "${MONERO_CPP_DIR}/external/libsodium/include/sodium"
+    "${MONERO_CPP_DIR}/external/openssl-sdk/include"
+    "${MONERO_CPP_DIR}/src"
+    "${MONERO_PROJECT_DIR}/contrib/epee/include"
+    "${MONERO_PROJECT_DIR}/external"
+    "${MONERO_PROJECT_DIR}/external/easylogging++"
+    "${MONERO_PROJECT_DIR}/external/rapidjson/include"
+    "${MONERO_PROJECT_DIR}/src"
+    "${MONERO_PROJECT_DIR}/src/crypto"
+    "${MONERO_PROJECT_DIR}/src/crypto/crypto_ops_builder/include"
+    "${MONERO_PROJECT_DIR}/src/wallet"
+    "${MONERO_PROJECT_DIR}/src/wallet/api"
+  )
+
+  target_link_libraries(monero-java-static PUBLIC
+    monero-cpp
+    wallet_api
+    ${Boost_LIBRARIES}
+    ${OPENSSL_LIBRARIES}
+    ${SODIUM_LIBRARY}
+    ${UNBOUND_LIBRARY}
+    ${HIDAPI_LIBRARY}
+    ${LibUSB_LIBRARIES}
+    ${JNI_LIBRARIES}
+    ${EXTRA_LIBRARIES}
+  )
+
+  file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/monero-java_wrapper.cpp" "")
+
+  add_library(monero-java SHARED "${CMAKE_CURRENT_BINARY_DIR}/monero-java_wrapper.cpp")
+
+#  target_link_libraries(monero-java PRIVATE monero-java-static)
+  target_link_libraries(monero-java "-Wl,--whole-archive" monero-java-static "-Wl,--no-whole-archive")
+
+  target_link_options(monero-java PRIVATE "-static-libstdc++" "-static-libgcc")
+
+
 else()
-  target_include_directories(monero-java PUBLIC "$ENV{JAVA_HOME}/include/linux")
+
+  add_library(monero-java SHARED ${MONERO_JNI_SRC_FILES})
+
+  if(APPLE)
+    target_include_directories(monero-java PUBLIC "$ENV{JAVA_HOME}/include/darwin")
+  elseif(WIN32)
+    target_include_directories(monero-java PUBLIC "$ENV{JAVA_HOME}/include/win32")
+  else()
+    target_include_directories(monero-java PUBLIC "$ENV{JAVA_HOME}/include/linux")
+  endif()
+
+  target_include_directories(monero-java PUBLIC
+    "$ENV{JAVA_HOME}"
+    "$ENV{JAVA_HOME}/include"
+    "${Boost_INCLUDE_DIR}"
+    "${OPENSSL_INCLUDE_DIR}"
+    "${MONERO_CPP_DIR}/external/libsodium/include/sodium"
+    "${MONERO_CPP_DIR}/external/openssl-sdk/include"
+    "${MONERO_CPP_DIR}/src"
+    "${MONERO_PROJECT_DIR}/contrib/epee/include"
+    "${MONERO_PROJECT_DIR}/external"
+    "${MONERO_PROJECT_DIR}/external/easylogging++"
+    "${MONERO_PROJECT_DIR}/external/rapidjson/include"
+    "${MONERO_PROJECT_DIR}/src"
+    "${MONERO_PROJECT_DIR}/src/crypto"
+    "${MONERO_PROJECT_DIR}/src/crypto/crypto_ops_builder/include"
+    "${MONERO_PROJECT_DIR}/src/wallet"
+    "${MONERO_PROJECT_DIR}/src/wallet/api"
+  )
+
+  target_link_libraries(monero-java
+    monero-cpp
+    wallet_api
+    ${Boost_LIBRARIES}
+    ${OPENSSL_LIBRARIES}
+    ${SODIUM_LIBRARY}
+    ${UNBOUND_LIBRARY}
+    ${HIDAPI_LIBRARY}
+    ${LibUSB_LIBRARIES}
+    ${JNI_LIBRARIES}
+    ${EXTRA_LIBRARIES}
+  )
+
 endif()
 
-target_link_libraries(monero-java
-  monero-cpp
-  wallet_api
-  ${Boost_LIBRARIES}
-  ${OPENSSL_LIBRARIES}
-  ${EXTRA_LIBRARIES}
-)
 
 if(WIN32)
   target_link_options(monero-java PUBLIC "-Wl,--enable-auto-import,--export-all-symbols")
@@ -288,11 +653,13 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   target_link_options(monero-java PRIVATE "-z" "noexecstack")
 endif()
 
+
 install(TARGETS monero-java
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Runtime
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Development
 )
+
 
 if(APPLE)
   add_custom_command(TARGET monero-java
