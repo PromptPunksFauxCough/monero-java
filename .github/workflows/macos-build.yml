@@ -1,0 +1,162 @@
+name: Build macOS Universal Binary
+
+on:
+  push:
+    branches:
+      - '**'
+  release:
+    types: [published]
+
+jobs:
+  build-x86_64:
+    runs-on: macos-13
+    timeout-minutes: 60
+
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v4
+      with:
+        submodules: false
+
+    - name: Cache Homebrew dependencies
+      uses: actions/cache@v3
+      with:
+        path: /usr/local/Homebrew/Cellar
+        key: ${{ runner.os }}-brew-x86_64-${{ hashFiles('**/Brewfile') }}
+        restore-keys: |
+          ${{ runner.os }}-brew-x86_64-
+
+    - name: Use CMake 3.24
+      uses: lukka/get-cmake@latest
+      with:
+        cmakeVersion: "3.24.0"
+
+    - name: Setup JDK
+      uses: actions/setup-java@v4
+      with:
+        distribution: "liberica"
+        java-version: "21"
+
+    - name: Install dependencies via Homebrew
+      run: |
+        brew update
+        brew install boost@1.85 openssl@3 zeromq hidapi pkg-config
+
+    - name: Build x86_64
+      run: |
+        export CMAKE_PREFIX_PATH="/usr/local/opt/boost@1.85:/usr/local/opt/openssl@3:/usr/local/opt/zeromq:/usr/local/opt/hidapi"
+        
+        mkdir -p build-x86_64
+        cd build-x86_64
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=x86_64
+        cmake --build . --parallel 4
+
+    - name: Upload x86_64 artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: macos-x86_64-binaries
+        path: |
+          build-x86_64/libmonero-java.dylib
+          build-x86_64/libmonero-cpp.dylib
+
+  build-aarch64:
+    runs-on: macos-14
+    timeout-minutes: 60
+
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v4
+      
+    - name: Cache Homebrew dependencies
+      uses: actions/cache@v3
+      with:
+        path: /opt/homebrew/Cellar
+        key: ${{ runner.os }}-brew-aarch64-${{ hashFiles('**/Brewfile') }}
+        restore-keys: |
+          ${{ runner.os }}-brew-aarch64-
+
+    - name: Use CMake 3.24
+      uses: lukka/get-cmake@latest
+      with:
+        cmakeVersion: "3.24.0"
+
+    - name: Setup JDK
+      uses: actions/setup-java@v4
+      with:
+        distribution: "liberica"
+        java-version: "21"
+    
+    - name: Install dependencies via Homebrew
+      run: |
+        brew update
+        brew install boost@1.85 openssl@3 zeromq hidapi pkg-config
+
+    - name: Build aarch64
+      run: |
+        export CMAKE_PREFIX_PATH="/opt/homebrew/opt/boost@1.85:/opt/homebrew/opt/openssl@3:/opt/homebrew/opt/zeromq:/opt/homebrew/opt/hidapi"
+        
+        mkdir -p build-aarch64
+        cd build-aarch64
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64
+        cmake --build . --parallel 4
+    
+    - name: Upload aarch64 artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: macos-aarch64-binaries
+        path: |
+          build-aarch64/libmonero-java.dylib
+          build-aarch64/libmonero-cpp.dylib
+
+  create-universal-binary:
+    needs: [build-x86_64, build-aarch64]
+    runs-on: macos-14
+    timeout-minutes: 30
+
+    steps:
+    - name: Download x86_64 binaries
+      uses: actions/download-artifact@v4
+      with:
+        name: macos-x86_64-binaries
+        path: ./x86_64
+
+    - name: Download aarch64 binaries
+      uses: actions/download-artifact@v4
+      with:
+        name: macos-aarch64-binaries
+        path: ./aarch64
+    
+    - name: Create universal binaries
+      # This step will only run if the workflow was triggered by a release
+      if: github.event_name == 'release'
+      run: |
+        lipo -create \
+        ./x86_64/libmonero-java.dylib \
+        ./aarch64/libmonero-java.dylib \
+        -output ./libmonero-java.dylib
+
+        lipo -create \
+        ./x86_64/libmonero-cpp.dylib \
+        ./aarch64/libmonero-cpp.dylib \
+        -output ./libmonero-cpp.dylib
+        
+        lipo -info ./libmonero-java.dylib
+        lipo -info ./libmonero-cpp.dylib
+        
+    - name: Package release artifact
+      # This step will also only run if the workflow was triggered by a release
+      if: github.event_name == 'release'
+      run: |
+        zip monero-java-macos.zip libmonero-java.dylib libmonero-cpp.dylib
+
+    - name: Upload Release Asset
+      # This step will also only run if the workflow was triggered by a release
+      if: github.event_name == 'release'
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./monero-java-macos.zip
+        asset_name: monero-java-macos.zip
+        asset_content_type: application/zip
