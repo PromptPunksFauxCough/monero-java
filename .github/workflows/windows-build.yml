@@ -165,7 +165,7 @@ jobs:
 
       - name: CMake Build
         run: |
-          cmake --build build --config Release --parallel 1
+          cmake --build build --config Release --parallel 4
 
       - name: Save ccache cache
         if: always() && steps.cache-ccache.outputs.cache-hit != 'true'
