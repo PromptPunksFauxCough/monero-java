@@ -1,4 +1,4 @@
-name: Windows Cross-Compile (MSYS2)
+name: Cross-Compile Windows (Ubuntu + MSYS2 Layout + Boost -fPIC + Cache)
 
 on:
   push:
@@ -9,58 +9,68 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ubuntu-22.04
     timeout-minutes: 60
-
-    defaults:
-      run:
-        shell: msys2 {0}
 
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Setup MSYS2
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: MINGW64
-          update: true
-          install: >-
-            mingw-w64-x86_64-toolchain
-            mingw-w64-x86_64-cmake
-            mingw-w64-x86_64-openssl
-            mingw-w64-x86_64-zeromq
-            mingw-w64-x86_64-libsodium
-            mingw-w64-x86_64-hidapi
-            mingw-w64-x86_64-unbound
-            mingw-w64-x86_64-protobuf
-            mingw-w64-x86_64-libusb
-            mingw-w64-x86_64-readline
-            git
-            make
-            curl
-            unzip
-            base-devel
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            mingw-w64 \
+            cmake \
+            curl \
+            unzip \
+            make \
+            g++-mingw-w64-x86-64 \
+            pkg-config \
+            libtool \
+            autoconf \
+            automake
 
-      - name: Build Boost
+      - name: Create MSYS2-style layout
+        run: |
+          sudo mkdir -p /mingw64/include /mingw64/lib /mingw64/bin
+          sudo chown -R $USER:$USER /mingw64
+
+      - name: Restore Boost Cache
+        id: boost-cache
+        uses: actions/cache@v4
+        with:
+          path: /mingw64/boost
+          key: ubuntu-boost-1.74-pic-${{ hashFiles('**/CMakeLists.txt') }}
+          restore-keys: ubuntu-boost-1.74-pic-
+
+      - name: Build Boost (if cache miss)
+        if: steps.boost-cache.outputs.cache-hit != 'true'
         run: |
           curl -LO https://archives.boost.io/release/1.74.0/source/boost_1_74_0.zip
           unzip boost_1_74_0.zip
           cd boost_1_74_0
-          ./bootstrap.sh --prefix=/mingw64 --with-toolset=gcc
+          ./bootstrap.sh --prefix=/mingw64/boost --with-toolset=gcc
           ./b2 --with-chrono --with-date_time --with-filesystem --with-program_options \
                --with-regex --with-serialization --with-system --with-thread \
-               --with-locale toolset=gcc link=static threading=multi address-model=64 \
-               --prefix=/mingw64 install
+               toolset=gcc \
+               cxxflags="-fPIC" \
+               link=static threading=multi address-model=64 \
+               target-os=windows \
+               install
+          cp -r /mingw64/boost/include/boost /mingw64/include/
+          cp -r /mingw64/boost/lib/* /mingw64/lib/
 
       - name: CMake Configure
         run: |
-          cmake -G "MinGW Makefiles" -B build -DCMAKE_BUILD_TYPE=Release \
-            -DBOOST_ROOT=/mingw64 \
-            -DOPENSSL_ROOT_DIR=/mingw64 \
-            -DZeroMQ_ROOT_DIR=/mingw64 \
-            -DLIBSODIUM_ROOT_DIR=/mingw64 \
-            -DLIBUSB_ROOT_DIR=/mingw64
+          cmake -B build -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_SYSTEM_NAME=Windows \
+            -DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc \
+            -DCMAKE_CXX_COMPILER=x86_64-w64-mingw32-g++ \
+            -DCMAKE_FIND_ROOT_PATH=/mingw64 \
+            -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY \
+            -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY \
+            -DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY
 
       - name: CMake Build
         run: cmake --build build --config Release --parallel 4
