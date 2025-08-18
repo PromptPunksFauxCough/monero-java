@@ -147,8 +147,12 @@ jobs:
         if: (inputs.variant == 'macos_amd64' || inputs.variant == 'macos_arm64') && (matrix.build_type == 'portable')
         run: |
           ccache -C
+          if [ ${{inputs.variant == 'macos_amd64'}}]; then
+            export CMAKE_PREFIX_PATH="${{ github.workspace }}/opt/boost-pic:/usr/local/opt/openssl@3:/usr/local/opt/zeromq:/usr/local/opt/hidapi"
+          else:
+            export CMAKE_PREFIX_PATH="${{ github.workspace }}/opt/boost-pic:/opt/homebrew/opt/openssl@3:/opt/homebrew/opt/zeromq:/opt/homebrew/opt/hidapi"
+          fi
           mkdir -p build-${{ matrix.build_type }}
-          export CMAKE_PREFIX_PATH="${{ github.workspace }}/opt/boost-pic:/usr/local/opt/openssl@3:/usr/local/opt/zeromq:/usr/local/opt/hidapi"
           cmake -S . -B build-${{ matrix.build_type }} \
             -DCMAKE_OSX_ARCHITECTURES=$OSX_ARCH \
             -DCMAKE_BUILD_TYPE=Release \
@@ -175,13 +179,16 @@ jobs:
         if: (inputs.variant == 'macos_amd64' || inputs.variant == 'macos_arm64') && (matrix.build_type == 'dynamic')
         run: |
           ccache -C
+          if [ ${{inputs.variant == 'macos_amd64'}}]; then
+            export CMAKE_PREFIX_PATH="/usr/local/opt/boost@1.85:/usr/local/opt/openssl@3:/usr/local/opt/zeromq:/usr/local/opt/hidapi"
+          else:
+            export CMAKE_PREFIX_PATH="/opt/homebrew/opt/boost@1.85:/opt/homebrew/opt/openssl@3:/opt/homebrew/opt/zeromq:/opt/homebrew/opt/hidapi"
+          fi
           mkdir -p build-${{ matrix.build_type }}
-          export CMAKE_PREFIX_PATH="/usr/local/opt/boost@1.85:/usr/local/opt/openssl@3:/usr/local/opt/zeromq:/usr/local/opt/hidapi"
           cmake -S . -B build-${{ matrix.build_type }} \
             -DCMAKE_OSX_ARCHITECTURES=$OSX_ARCH \
             -DCMAKE_BUILD_TYPE=Release \
             -DBUILD_STATIC=OFF \
-            -DCMAKE_PREFIX_PATH="/usr/local/opt/boost@1.85:/usr/local/opt/openssl@3:/usr/local/opt/zeromq:/usr/local/opt/hidapi" \
             -DCMAKE_FIND_DEBUG_MODE=ON -DCMAKE_VERBOSE_MAKEFILE=ON --trace-expand
           cmake --build build-${{ matrix.build_type }} --parallel 4
 
