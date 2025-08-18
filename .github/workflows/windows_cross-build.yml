@@ -47,7 +47,7 @@ jobs:
       - name: Create Boost User Config
         run: |
           echo "using gcc : mingw : x86_64-w64-mingw32-g++ ;" > boost_1_74_0/user-config.jam
-
+          
       - name: Build and Install Boost
         run: |
           cd boost_1_74_0
