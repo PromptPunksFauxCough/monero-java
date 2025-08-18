@@ -23,32 +23,35 @@ jobs:
       JAVA_HOME_21_X64: /opt/hostedtoolcache/Java_Liberica_jdk/21.0.8-12/x64
 
     steps:
-      - name: Detect Architecture
+      - name: Detect Architecture - (All)
         id: arch
         run: |
           if [[ "${{ inputs.variant }}" == *"arm64"* ]]; then
             echo "ARCH=arm64" >> $GITHUB_ENV
+            echo "OSX_ARCH=arm64" >> $GITHUB_ENV
           else
             echo "ARCH=amd64" >> $GITHUB_ENV
+            echo "OSX_ARCH=x86_64" >> $GITHUB_ENV
           fi
 
-      - name: Setup JDK
+      - name: Setup JDK - (All)
         uses: actions/setup-java@v4
         with:
           distribution: "liberica"
           java-version: "21"
 
-      - name: Checkout Source
+      - name: Checkout Source - (All)
         uses: actions/checkout@v4
         with:
           submodules: false
 
-      - name: Use CMake 3.24
+      - name: Use CMake 3.24 - (All)
         uses: lukka/get-cmake@latest
         with:
           cmakeVersion: "3.24.0"
 
-      - name: Install Dependencies
+      - name: Install Dependencies via apt - (Linux)
+        if: inputs.variant == 'linux_amd64' || inputs.variant == 'linux_arm64'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -57,13 +60,39 @@ jobs:
             qttools5-dev libhidapi-dev libusb-1.0-0-dev libprotobuf-dev \
             doxygen graphviz libtool gperf libevent-dev pkg-config ccache
 
-      - name: Build and Install Boost (w/PIC Support)
-        if: matrix.build_type == 'portable'
+      - name: Install Dependencies via Homebrew - (MacOS)
+        if: inputs.variant == 'macos_amd64' || inputs.variant == 'macos_arm64'
+        run: |
+          brew update
+          brew install boost@1.85 openssl@3 zeromq hidapi pkg-config ccache
+
+      - name: Build and Install Boost (w/PIC Support) - (Linux)
+        if: (inputs.variant == 'linux_amd64' || inputs.variant == 'linux_arm64') && (matrix.build_type == 'portable')
         run: |
           mkdir -p /opt/boost-pic
           curl -LO https://archives.boost.io/release/1.74.0/source/boost_1_74_0.zip
           unzip boost_1_74_0.zip
           cd boost_1_74_0
+
+          if [ "$ARCH" = "arm64" ]; then
+            ARCH_FLAGS="architecture=arm address-model=64"
+          else
+            ARCH_FLAGS=""
+          fi
+
+          ./bootstrap.sh --prefix=/opt/boost-pic --with-toolset=gcc
+          ./b2 cxxflags="-fPIC" linkflags="-fPIC" --with-chrono --with-date_time --with-filesystem \
+              --with-program_options --with-regex --with-serialization --with-system \
+              --with-thread --with-locale toolset=gcc link=static runtime-link=static \
+              threading=multi $ARCH_FLAGS --prefix=/opt/boost-pic install
+
+      - name: Build and Install Boost (w/PIC Support) - (MacOS)
+        if: (inputs.variant == 'macos_amd64' || inputs.variant == 'macos_arm64') && (matrix.build_type == 'portable')
+        run: |
+          mkdir -p /opt/boost-pic
+          curl -LO https://archives.boost.io/release/1.85.0/source/boost_1_85_0.zip
+          unzip boost_1_85_0.zip
+          cd boost_1_85_0
 
           if [ "$ARCH" = "arm64" ]; then
             ARCH_FLAGS="architecture=arm address-model=64"
@@ -99,12 +128,12 @@ jobs:
 #          -DCMAKE_FIND_DEBUG_MODE=ON -DCMAKE_VERBOSE_MAKEFILE=ON --trace-expand
 #          cmake --build build-dynamic --parallel 4
 
-      - name: Configure and Build (Portable)
-        if: matrix.build_type == 'portable'
+      - name: Configure and Build (Portable) - (Linux)
+        if: (inputs.variant == 'linux_amd64' || inputs.variant == 'linux_arm64') && (matrix.build_type == 'portable')
         run: |
           ccache -C
-          mkdir -p build-portable
-          cmake -S . -B build-portable \
+          mkdir -p build-${{ matrix.build_type }}
+          cmake -S . -B build-${{ matrix.build_type }} \
             -DCMAKE_SYSTEM_PROCESSOR=$ARCH \
             -DCMAKE_BUILD_TYPE=Release \
             -DBUILD_STATIC=ON \
@@ -112,20 +141,50 @@ jobs:
             -DBoost_NO_SYSTEM_PATHS=ON \
             -DBOOST_INCLUDEDIR=/opt/boost-pic/include \
             -DBOOST_LIBRARYDIR=/opt/boost-pic/lib
-          cmake --build build-portable --parallel 4
+          cmake --build build-${{ matrix.build_type }} --parallel 4
 
-      - name: Configure and Build (Dynamic)
-        if: matrix.build_type == 'dynamic'
+      - name: Configure and Build (Portable) - (MacOS)
+        if: (inputs.variant == 'macos_amd64' || inputs.variant == 'macos_arm64') && (matrix.build_type == 'portable')
         run: |
           ccache -C
-          mkdir -p build-dynamic
-          cmake -S . -B build-dynamic \
+          mkdir -p build-${{ matrix.build_type }}
+          cmake -S . -B build-${{ matrix.build_type }} \
+            -DCMAKE_OSX_ARCHITECTURES=$OSX_ARCH \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_STATIC=ON \
+            -DBOOST_ROOT=/opt/boost-pic \
+            -DBoost_NO_SYSTEM_PATHS=ON \
+            -DBOOST_INCLUDEDIR=/opt/boost-pic/include \
+            -DBOOST_LIBRARYDIR=/opt/boost-pic/lib \
+            -DCMAKE_FIND_DEBUG_MODE=ON -DCMAKE_VERBOSE_MAKEFILE=ON --trace-expand
+          cmake --build build-${{ matrix.build_type }} --parallel 4
+
+      - name: Configure and Build (Dynamic) - (Linux)
+        if: (inputs.variant == 'linux_amd64' || inputs.variant == 'linux_arm64') && (matrix.build_type == 'dynamic')
+        run: |
+          ccache -C
+          mkdir -p build-${{ matrix.build_type }}
+          cmake -S . -B build-${{ matrix.build_type }} \
             -DCMAKE_SYSTEM_PROCESSOR=$ARCH \
             -DCMAKE_BUILD_TYPE=Release \
             -DBUILD_STATIC=OFF
-          cmake --build build-dynamic --parallel 4
+          cmake --build build-${{ matrix.build_type }} --parallel 4
 
-      - name: Package Release Artifacts
+      - name: Configure and Build (Dynamic) - (MacOS)
+        if: (inputs.variant == 'macos_amd64' || inputs.variant == 'macos_arm64') && (matrix.build_type == 'dynamic')
+        run: |
+          ccache -C
+          mkdir -p build-${{ matrix.build_type }}
+          cmake -S . -B build-${{ matrix.build_type }} \
+            -DCMAKE_OSX_ARCHITECTURES=$OSX_ARCH \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_STATIC=OFF \
+            -DCMAKE_PREFIX_PATH="/usr/local/opt/boost@1.85:/usr/local/opt/openssl@3:/usr/local/opt/zeromq:/usr/local/opt/hidapi" \
+            -DCMAKE_FIND_DEBUG_MODE=ON -DCMAKE_VERBOSE_MAKEFILE=ON --trace-expand
+          cmake --build build-${{ matrix.build_type }} --parallel 4
+
+      - name: Package Release Artifacts - (Linux)
+        if: inputs.variant == 'linux_amd64' || inputs.variant == 'linux_arm64'
         run: |
           mkdir -p dist/${{ matrix.build_type }}
           cp build-${{ matrix.build_type }}/libmonero-java.so dist/${{ matrix.build_type }}/
@@ -135,13 +194,98 @@ jobs:
           zip -r dist/monero-java_${{ inputs.variant }}-${{ matrix.build_type }}.zip dist/${{ matrix.build_type }}/
           tar -czvf dist/monero-java_${{ inputs.variant }}-${{ matrix.build_type }}.tar.gz -C dist/${{ matrix.build_type }} .
 
-      - name: Upload Artifacts
+      - name: Upload Artifacts - (Linux)
+        if: inputs.variant == 'linux_amd64' || inputs.variant == 'linux_arm64'
         uses: actions/upload-artifact@v4
         with:
           name: monero-java-${{ inputs.variant }}-${{ matrix.build_type }}
           path: dist/${{ matrix.build_type }}/*
 
-      - name: Generate GitHub Release
+      - name: Upload Sub-Artifacts (Portable) - (MacOS)
+        if: (inputs.variant == 'macos_amd64' || inputs.variant == 'macos_arm64') && (matrix.build_type == 'portable')
+        uses: actions/upload-artifact@v4
+        with:
+          name: monero-java-${{ inputs.variant }}-${{ matrix.build_type }}
+          path: |
+            build-${{ matrix.build_type }}/libmonero-java.dylib
+
+      - name: Upload Sub-Artifacts (Dynamic) - (MacOS)
+        if: (inputs.variant == 'macos_amd64' || inputs.variant == 'macos_arm64') && (matrix.build_type == 'dynamic')
+        uses: actions/upload-artifact@v4
+        with:
+          name: monero-java-${{ inputs.variant }}-${{ matrix.build_type }}
+          path: |
+            build-${{ matrix.build_type }}/libmonero-java.dylib
+            build-${{ matrix.build_type }}/libmonero-cpp.dylib
+
+      - name: Download Sub-Artifacts (Portable amd64) - (MacOS)
+        if: (inputs.variant == 'macos_amd64') && (matrix.build_type == 'portable') && (github.ref == 'refs/heads/static')
+        uses: actions/download-artifact@v4
+        with:
+          name: monero-java-${{ inputs.variant }}-${{ matrix.build_type }}
+          path: ./${{ inputs.variant }}-${{ matrix.build_type }}
+
+      - name: Download Sub-Artifacts (Portable arm64) - (MacOS)
+        if: (inputs.variant == 'macos_arm64') && (matrix.build_type == 'portable') && (github.ref == 'refs/heads/static')
+        uses: actions/download-artifact@v4
+        with:
+          name: monero-java-${{ inputs.variant }}-${{ matrix.build_type }}
+          path: ./${{ inputs.variant }}-${{ matrix.build_type }}
+
+      - name: Download Sub-Artifacts (Dynamic amd64) - (MacOS)
+        if: (inputs.variant == 'macos_amd64') && (matrix.build_type == 'dynamic') && (github.ref == 'refs/heads/static')
+        uses: actions/download-artifact@v4
+        with:
+          name: monero-java-${{ inputs.variant }}-${{ matrix.build_type }}
+          path: ./${{ inputs.variant }}-${{ matrix.build_type }}
+
+      - name: Download Sub-Artifacts (Dynamic arm64) - (MacOS)
+        if: (inputs.variant == 'macos_arm64') && (matrix.build_type == 'dynamic') && (github.ref == 'refs/heads/static')
+        uses: actions/download-artifact@v4
+        with:
+          name: monero-java-${{ inputs.variant }}-${{ matrix.build_type }}
+          path: ./${{ inputs.variant }}-${{ matrix.build_type }}
+
+      - name: Create Universal (Portable) - (MacOS)
+        if: (inputs.variant == 'macos_amd64' || inputs.variant == 'macos_arm64') && (matrix.build_type == 'portable') && (github.ref == 'refs/heads/static')
+        run: |
+          mkdir -p dist/universal-${{ matrix.build_type }}
+          lipo -create \
+            ./macos_amd64-${{ matrix.build_type }}/libmonero-java.dylib \
+            ./macos_arm64-${{ matrix.build_type }}/libmonero-java.dylib \
+            -output dist/universal-${{ matrix.build_type }}/libmonero-java.dylib
+
+          lipo -info dist/universal-${{ matrix.build_type }}/libmonero-java.dylib
+
+      - name: Create Universal (Dynamic) - (MacOS)
+        if: (inputs.variant == 'macos_amd64' || inputs.variant == 'macos_arm64') && (matrix.build_type == 'dynamic') && github.ref == 'refs/heads/static'
+        run: |
+          mkdir -p dist/universal-${{ matrix.build_type }}
+          lipo -create \
+            ./macos_amd64-${{ matrix.build_type }}/libmonero-java.dylib \
+            ./macos_arm64-${{ matrix.build_type }}/libmonero-java.dylib \
+            -output dist/universal-${{ matrix.build_type }}/libmonero-java.dylib
+
+          lipo -create \
+            ./macos_amd64-${{ matrix.build_type }}/libmonero-cpp.dylib \
+            ./macos_arm64-${{ matrix.build_type }}/libmonero-cpp.dylib \
+            -output dist/universal-${{ matrix.build_type }}/libmonero-cpp.dylib
+
+          lipo -info dist/universal-${{ matrix.build_type }}/libmonero-java.dylib
+          lipo -info dist/universal-${{ matrix.build_type }}/libmonero-cpp.dylib
+
+      - name: Package Universal - (MacOS)
+        if: (inputs.variant == 'macos_amd64' || inputs.variant == 'macos_arm64') && (github.ref == 'refs/heads/static')
+        run: |
+          if [ "${{ matrix.build_type }}" = "portable" ]; then
+            zip -j dist/monero-java_macos_universal-${{ matrix.build_type }}.zip dist/universal-${{ matrix.build_type }}/libmonero-java.dylib
+            tar -czvf dist/monero-java_macos_universal-${{ matrix.build_type }}.tar.gz -C dist/universal-${{ matrix.build_type }} libmonero-java.dylib
+          else
+            zip -j dist/monero-java_macos_universal-${{ matrix.build_type }}.zip dist/universal-${{ matrix.build_type }}/libmonero-java.dylib dist/universal-${{ matrix.build_type }}/libmonero-cpp.dylib
+            tar -czvf dist/monero-java_macos_universal-${{ matrix.build_type }}.tar.gz -C dist/universal-${{ matrix.build_type }} libmonero-java.dylib libmonero-cpp.dylib
+          fi
+
+      - name: Generate GitHub Release - (All)
         if: github.ref == 'refs/heads/static'
         uses: softprops/action-gh-release@v1
         with:
