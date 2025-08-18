@@ -89,7 +89,7 @@ jobs:
       - name: Build and Install Boost (w/PIC Support) - (MacOS)
         if: (inputs.variant == 'macos_amd64' || inputs.variant == 'macos_arm64') && (matrix.build_type == 'portable')
         run: |
-          mkdir -p /opt/boost-pic
+          mkdir -p ${{ github.workspace }}/opt/boost-pic
           curl -LO https://archives.boost.io/release/1.85.0/source/boost_1_85_0.zip
           unzip boost_1_85_0.zip
           cd boost_1_85_0
@@ -100,11 +100,11 @@ jobs:
             ARCH_FLAGS=""
           fi
 
-          ./bootstrap.sh --prefix=/opt/boost-pic --with-toolset=gcc
+          ./bootstrap.sh --prefix=${{ github.workspace }}/opt/boost-pic --with-toolset=gcc
           ./b2 cxxflags="-fPIC" linkflags="-fPIC" --with-chrono --with-date_time --with-filesystem \
               --with-program_options --with-regex --with-serialization --with-system \
               --with-thread --with-locale toolset=gcc link=static runtime-link=static \
-              threading=multi $ARCH_FLAGS --prefix=/opt/boost-pic install
+              threading=multi $ARCH_FLAGS --prefix=${{ github.workspace }}/opt/boost-pic install
 
 #      - name: Configure and Build (Portable) + (Build Debugging)
 #        if: matrix.build_type == 'portable'
@@ -148,14 +148,15 @@ jobs:
         run: |
           ccache -C
           mkdir -p build-${{ matrix.build_type }}
+          export CMAKE_PREFIX_PATH="${{ github.workspace }}/opt/boost-pic:/usr/local/opt/openssl@3:/usr/local/opt/zeromq:/usr/local/opt/hidapi"
           cmake -S . -B build-${{ matrix.build_type }} \
             -DCMAKE_OSX_ARCHITECTURES=$OSX_ARCH \
             -DCMAKE_BUILD_TYPE=Release \
             -DBUILD_STATIC=ON \
-            -DBOOST_ROOT=/opt/boost-pic \
+            -DBOOST_ROOT=${{ github.workspace }}/opt/boost-pic \
             -DBoost_NO_SYSTEM_PATHS=ON \
-            -DBOOST_INCLUDEDIR=/opt/boost-pic/include \
-            -DBOOST_LIBRARYDIR=/opt/boost-pic/lib \
+            -DBOOST_INCLUDEDIR=${{ github.workspace }}/opt/boost-pic/include \
+            -DBOOST_LIBRARYDIR=${{ github.workspace }}/opt/boost-pic/lib \
             -DCMAKE_FIND_DEBUG_MODE=ON -DCMAKE_VERBOSE_MAKEFILE=ON --trace-expand
           cmake --build build-${{ matrix.build_type }} --parallel 4
 
@@ -175,6 +176,7 @@ jobs:
         run: |
           ccache -C
           mkdir -p build-${{ matrix.build_type }}
+          export CMAKE_PREFIX_PATH="/usr/local/opt/boost@1.85:/usr/local/opt/openssl@3:/usr/local/opt/zeromq:/usr/local/opt/hidapi"
           cmake -S . -B build-${{ matrix.build_type }} \
             -DCMAKE_OSX_ARCHITECTURES=$OSX_ARCH \
             -DCMAKE_BUILD_TYPE=Release \
