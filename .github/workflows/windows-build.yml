@@ -156,6 +156,12 @@ jobs:
             -DReadline_ROOT_DIR=/mingw64 \
             -DReadline_INCLUDE_DIR=/mingw64/include \
             -DReadline_LIBRARY=/mingw64/lib/libreadline.a \
+            -DRANDOMX_INCLUDE_DIR=$GITHUB_WORKSPACE/external/monero-cpp/external/randomx \
+            -DRANDOMX_LIBRARY_DIR=$GITHUB_WORKSPACE/external/monero-cpp/external/randomx \
+            -DRANDOMX_LIBRARY=$GITHUB_WORKSPACE/external/monero-cpp/external/randomx/librandomx.a \
+            -DCNCRYPTO_INCLUDE_DIR=$GITHUB_WORKSPACE/external/monero-cpp/src/crypto \
+            -DCNCRYPTO_LIBRARY_DIR=$GITHUB_WORKSPACE/external/monero-cpp/src/crypto \
+            -DCNCRYPTO_LIBRARY=$GITHUB_WORKSPACE/external/monero-cpp/src/crypto/libcncrypto.a \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
