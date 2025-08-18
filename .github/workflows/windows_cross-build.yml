@@ -1,4 +1,4 @@
-name: Windows Cross-Compile via MSYS2
+name: Windows Cross-Compile (MSYS2)
 
 on:
   push:
@@ -9,68 +9,61 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: windows-latest
     timeout-minutes: 60
+
+    defaults:
+      run:
+        shell: msys2 {0}
 
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Install MSYS2
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y wget tar
-          wget https://github.com/msys2/msys2-installer/releases/download/2024-01-01/msys2-base-x86_64-20240101.tar.xz
-          sudo mkdir -p /opt/msys2
-          sudo tar -xJf msys2-base-x86_64-20240101.tar.xz -C /opt/msys2
-          echo 'export PATH=/opt/msys2/usr/bin:/opt/msys2/mingw64/bin:$PATH' >> $GITHUB_ENV
-
-      - name: Update MSYS2 and Install Packages
-        run: |
-          /opt/msys2/usr/bin/bash -lc "
-            pacman --noconfirm -Syuu &&
-            pacman --noconfirm -S \
-              mingw-w64-x86_64-toolchain \
-              mingw-w64-x86_64-cmake \
-              mingw-w64-x86_64-openssl \
-              mingw-w64-x86_64-zeromq \
-              mingw-w64-x86_64-libsodium \
-              mingw-w64-x86_64-hidapi \
-              mingw-w64-x86_64-unbound \
-              mingw-w64-x86_64-protobuf \
-              mingw-w64-x86_64-libusb \
-              mingw-w64-x86_64-readline \
-              git \
-              make \
-              curl \
-              unzip \
-              base-devel"
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-openssl
+            mingw-w64-x86_64-zeromq
+            mingw-w64-x86_64-libsodium
+            mingw-w64-x86_64-hidapi
+            mingw-w64-x86_64-unbound
+            mingw-w64-x86_64-protobuf
+            mingw-w64-x86_64-libusb
+            mingw-w64-x86_64-readline
+            git
+            make
+            curl
+            unzip
+            base-devel
 
       - name: Build Boost
         run: |
-          /opt/msys2/usr/bin/bash -lc "
-            curl -LO https://archives.boost.io/release/1.74.0/source/boost_1_74_0.zip &&
-            unzip boost_1_74_0.zip &&
-            cd boost_1_74_0 &&
-            ./bootstrap.sh --prefix=/mingw64 --with-toolset=gcc &&
-            ./b2 --with-chrono --with-date_time --with-filesystem --with-program_options \
-                 --with-regex --with-serialization --with-system --with-thread \
-                 --with-locale toolset=gcc link=static threading=multi address-model=64 \
-                 --prefix=/mingw64 install"
+          curl -LO https://archives.boost.io/release/1.74.0/source/boost_1_74_0.zip
+          unzip boost_1_74_0.zip
+          cd boost_1_74_0
+          ./bootstrap.sh --prefix=/mingw64 --with-toolset=gcc
+          ./b2 --with-chrono --with-date_time --with-filesystem --with-program_options \
+               --with-regex --with-serialization --with-system --with-thread \
+               --with-locale toolset=gcc link=static threading=multi address-model=64 \
+               --prefix=/mingw64 install
 
       - name: CMake Configure
         run: |
-          /opt/msys2/usr/bin/bash -lc "
-            cmake -G 'MinGW Makefiles' -B build -DCMAKE_BUILD_TYPE=Release \
-              -DBOOST_ROOT=/mingw64 \
-              -DOPENSSL_ROOT_DIR=/mingw64 \
-              -DZeroMQ_ROOT_DIR=/mingw64 \
-              -DLIBSODIUM_ROOT_DIR=/mingw64 \
-              -DLIBUSB_ROOT_DIR=/mingw64"
+          cmake -G "MinGW Makefiles" -B build -DCMAKE_BUILD_TYPE=Release \
+            -DBOOST_ROOT=/mingw64 \
+            -DOPENSSL_ROOT_DIR=/mingw64 \
+            -DZeroMQ_ROOT_DIR=/mingw64 \
+            -DLIBSODIUM_ROOT_DIR=/mingw64 \
+            -DLIBUSB_ROOT_DIR=/mingw64
 
       - name: CMake Build
-        run: |
-          /opt/msys2/usr/bin/bash -lc "cmake --build build --config Release --parallel 4"
+        run: cmake --build build --config Release --parallel 4
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
