@@ -178,6 +178,8 @@ jobs:
       - name: Configure and Build (Dynamic) - (MacOS)
         if: (inputs.variant == 'macos_amd64' || inputs.variant == 'macos_arm64') && (matrix.build_type == 'dynamic')
         run: |
+          echo "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"$ARCH
+          echo "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"$OSX_ARCH
           ccache -C
           if [ ${{inputs.variant == 'macos_amd64'}}]; then
             export CMAKE_PREFIX_PATH="/usr/local/opt/boost@1.85:/usr/local/opt/openssl@3:/usr/local/opt/zeromq:/usr/local/opt/hidapi"
