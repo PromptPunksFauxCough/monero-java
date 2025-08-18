@@ -1,4 +1,4 @@
-name: Windows (Cross-Compile) (PoC)
+name: Windows Cross-Compile via MSYS2
 
 on:
   push:
@@ -9,105 +9,68 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    timeout-minutes: 301
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
 
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
-        with:
-          submodules: false
 
-      - name: Install MinGW-w64 and Dependencies via apt
+      - name: Install MSYS2
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            g++-mingw-w64-x86-64 \
-            git \
-            cmake \
-            make \
-            unzip \
-            ccache \
-            gettext \
-            curl \
-            libssl-dev \
-            libsodium-dev \
-            libzmq5-dev \
-            libhidapi-dev \
-            libunbound-dev \
-            libprotobuf-dev \
-            libusb-1.0-0-dev \
-            libreadline-dev
+          sudo apt-get install -y wget tar
+          wget https://github.com/msys2/msys2-installer/releases/download/2024-01-01/msys2-base-x86_64-20240101.tar.xz
+          sudo mkdir -p /opt/msys2
+          sudo tar -xJf msys2-base-x86_64-20240101.tar.xz -C /opt/msys2
+          echo 'export PATH=/opt/msys2/usr/bin:/opt/msys2/mingw64/bin:$PATH' >> $GITHUB_ENV
 
-      - name: Create symlink for MinGW compiler
+      - name: Update MSYS2 and Install Packages
         run: |
-          sudo ln -s /usr/bin/x86_64-w64-mingw32-g++ /usr/bin/g++-mingw
-          sudo ln -s /usr/bin/x86_64-w64-mingw32-gcc /usr/bin/gcc-mingw
+          /opt/msys2/usr/bin/bash -lc "
+            pacman --noconfirm -Syuu &&
+            pacman --noconfirm -S \
+              mingw-w64-x86_64-toolchain \
+              mingw-w64-x86_64-cmake \
+              mingw-w64-x86_64-openssl \
+              mingw-w64-x86_64-zeromq \
+              mingw-w64-x86_64-libsodium \
+              mingw-w64-x86_64-hidapi \
+              mingw-w64-x86_64-unbound \
+              mingw-w64-x86_64-protobuf \
+              mingw-w64-x86_64-libusb \
+              mingw-w64-x86_64-readline \
+              git \
+              make \
+              curl \
+              unzip \
+              base-devel"
 
-      - name: Download and Extract Boost
+      - name: Build Boost
         run: |
-          curl -LO https://archives.boost.io/release/1.74.0/source/boost_1_74_0.zip
-          unzip boost_1_74_0.zip
-
-      - name: Create Boost User Config
-        run: |
-          echo "using gcc : mingw : g++-mingw ;" > boost_1_74_0/user-config.jam
-          echo "using linker : mingw : x86_64-w64-mingw32-ld ;" >> boost_1_74_0/user-config.jam
-
-      - name: Build and Install Boost
-        run: |
-          cd boost_1_74_0
-          ./bootstrap.sh
-          ./b2 toolset=gcc-mingw \
-            --with-chrono --with-date_time --with-filesystem --with-program_options \
-            --with-regex --with-serialization --with-system --with-thread \
-            --with-locale link=static threading=multi address-model=64 \
-            --prefix=$GITHUB_WORKSPACE/boost_install install -j 4
-
-      - name: Create MinGW-w64 Toolchain File
-        run: |
-          echo "set(CMAKE_SYSTEM_NAME Windows)" > mingw-w64-x86_64-toolchain.cmake
-          echo "set(TOOLCHAIN_PREFIX x86_64-w64-mingw32)" >> mingw-w64-x86_64-toolchain.cmake
-          echo "set(CMAKE_C_COMPILER /usr/bin/${TOOLCHAIN_PREFIX}-gcc)" >> mingw-w64-x86_64-toolchain.cmake
-          echo "set(CMAKE_CXX_COMPILER /usr/bin/${TOOLCHAIN_PREFIX}-g++)" >> mingw-w64-x86_64-toolchain.cmake
-          echo "set(CMAKE_RC_COMPILER /usr/bin/${TOOLCHAIN_PREFIX}-windres)" >> mingw-w64-x86_64-toolchain.cmake
-          echo "set(CMAKE_FIND_ROOT_PATH \"/usr/${TOOLCHAIN_PREFIX}\")" >> mingw-w64-x86_64-toolchain.cmake
-          echo "set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)" >> mingw-w64-x86_64-toolchain.cmake
-          echo "set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)" >> mingw-w64-x86_64-toolchain.cmake
-          echo "set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)" >> mingw-w64-x86_64-toolchain.cmake
-
-      - name: Restore ccache cache
-        id: cache-ccache
-        uses: actions/cache@v4
-        with:
-          path: ${{ github.workspace }}/.ccache
-          key: ${{ runner.os }}-ccache-${{ hashFiles('**/*.cpp', '**/*.c', '**/*.h', '**/CMakeLists.txt') }}
-          restore-keys: ${{ runner.os }}-ccache-
-
-      - name: Configure Git for line endings
-        run: git config --global core.autocrlf input
+          /opt/msys2/usr/bin/bash -lc "
+            curl -LO https://archives.boost.io/release/1.74.0/source/boost_1_74_0.zip &&
+            unzip boost_1_74_0.zip &&
+            cd boost_1_74_0 &&
+            ./bootstrap.sh --prefix=/mingw64 --with-toolset=gcc &&
+            ./b2 --with-chrono --with-date_time --with-filesystem --with-program_options \
+                 --with-regex --with-serialization --with-system --with-thread \
+                 --with-locale toolset=gcc link=static threading=multi address-model=64 \
+                 --prefix=/mingw64 install"
 
       - name: CMake Configure
         run: |
-          cmake -B build \
-            -DCMAKE_TOOLCHAIN_FILE=./mingw-w64-x86_64-toolchain.cmake \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DSTATIC_BUILD=ON \
-            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-            -DBOOST_ROOT=$GITHUB_WORKSPACE/boost_install \
-            -DBoost_LIBRARY_DIR_HINTS=$GITHUB_WORKSPACE/boost_install/lib
+          /opt/msys2/usr/bin/bash -lc "
+            cmake -G 'MinGW Makefiles' -B build -DCMAKE_BUILD_TYPE=Release \
+              -DBOOST_ROOT=/mingw64 \
+              -DOPENSSL_ROOT_DIR=/mingw64 \
+              -DZeroMQ_ROOT_DIR=/mingw64 \
+              -DLIBSODIUM_ROOT_DIR=/mingw64 \
+              -DLIBUSB_ROOT_DIR=/mingw64"
 
       - name: CMake Build
         run: |
-          cmake --build build --config Release --parallel 4
-
-      - name: Save ccache cache
-        if: always() && steps.cache-ccache.outputs.cache-hit != 'true'
-        uses: actions/cache@v4
-        with:
-          path: ${{ github.workspace }}/.ccache
-          key: ${{ runner.os }}-ccache-${{ hashFiles('**/*.cpp', '**/*.c', '**/*.h', '**/CMakeLists.txt') }}
+          /opt/msys2/usr/bin/bash -lc "cmake --build build --config Release --parallel 4"
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
