@@ -47,11 +47,12 @@ jobs:
       - name: Create Boost User Config
         run: |
           echo "using gcc : mingw : x86_64-w64-mingw32-g++ ;" > boost_1_74_0/user-config.jam
-          
+          echo "using linker : mingw : x86_64-w64-mingw32-ld ;" >> boost_1_74_0/user-config.jam
+
       - name: Build and Install Boost
         run: |
           cd boost_1_74_0
-          ./bootstrap.sh --prefix=$GITHUB_WORKSPACE/boost_install
+          ./bootstrap.sh
           ./b2 toolset=gcc-mingw \
             --with-chrono --with-date_time --with-filesystem --with-program_options \
             --with-regex --with-serialization --with-system --with-thread \
