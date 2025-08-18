@@ -39,6 +39,11 @@ jobs:
             libusb-1.0-0-dev \
             libreadline-dev
 
+      - name: Create symlink for MinGW compiler
+        run: |
+          sudo ln -s /usr/bin/x86_64-w64-mingw32-g++ /usr/bin/g++-mingw
+          sudo ln -s /usr/bin/x86_64-w64-mingw32-gcc /usr/bin/gcc-mingw
+
       - name: Download and Extract Boost
         run: |
           curl -LO https://archives.boost.io/release/1.74.0/source/boost_1_74_0.zip
@@ -46,7 +51,7 @@ jobs:
 
       - name: Create Boost User Config
         run: |
-          echo "using gcc : mingw : x86_64-w64-mingw32-g++ ;" > boost_1_74_0/user-config.jam
+          echo "using gcc : mingw : g++-mingw ;" > boost_1_74_0/user-config.jam
           echo "using linker : mingw : x86_64-w64-mingw32-ld ;" >> boost_1_74_0/user-config.jam
 
       - name: Build and Install Boost
