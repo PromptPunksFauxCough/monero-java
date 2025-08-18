@@ -33,7 +33,6 @@ jobs:
             mingw-w64-x86_64-libsodium
             mingw-w64-x86_64-hidapi
             mingw-w64-x86_64-unbound
-            mingw-w64-x86_64-libunwind
             mingw-w64-x86_64-protobuf
             mingw-w64-x86_64-libusb
             mingw-w64-x86_64-readline
@@ -149,8 +148,6 @@ jobs:
             -DUNBOUND_LIBRARIES="/mingw64/lib/libunbound.a" \
             -DHIDAPI_INCLUDE_DIR=/mingw64/include \
             -DHIDAPI_LIBRARY=/mingw64/lib/libhidapi.a \
-            -DLIBUNWIND_INCLUDE_DIR=/mingw64/include \
-            -DLIBUNWIND_LIBRARIES="/mingw64/lib/libunwind.a" \
             -DBacktrace_INCLUDE_DIR=/mingw64/include \
             -DBacktrace_LIBRARIES=/mingw64/lib/libbacktrace.a \
             -DProtobuf_INCLUDE_DIR=/mingw64/include \
@@ -161,6 +158,10 @@ jobs:
             -DReadline_LIBRARY=/mingw64/lib/libreadline.a \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+
+
+#            -DLIBUNWIND_INCLUDE_DIR=/mingw64/include \
+#            -DLIBUNWIND_LIBRARIES="/mingw64/lib/libunwind.a" \
 
       - name: CMake Build
         run: |
