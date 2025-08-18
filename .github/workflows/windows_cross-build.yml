@@ -44,13 +44,16 @@ jobs:
           curl -LO https://archives.boost.io/release/1.74.0/source/boost_1_74_0.zip
           unzip boost_1_74_0.zip
 
+      - name: Create Boost User Config
+        run: |
+          echo "using gcc : mingw : x86_64-w64-mingw32-g++ ;" > boost_1_74_0/user-config.jam
+
       - name: Build and Install Boost
         run: |
           cd boost_1_74_0
-          # Use the default gcc to build the bootstrap engine
           ./bootstrap.sh --prefix=$GITHUB_WORKSPACE/boost_install
-          # Use the mingw-w64 compiler to build the libraries for Windows
-          ./b2 toolset=gcc-mingw --with-chrono --with-date_time --with-filesystem --with-program_options \
+          ./b2 toolset=gcc-mingw \
+            --with-chrono --with-date_time --with-filesystem --with-program_options \
             --with-regex --with-serialization --with-system --with-thread \
             --with-locale link=static threading=multi address-model=64 \
             --prefix=$GITHUB_WORKSPACE/boost_install install -j 4
