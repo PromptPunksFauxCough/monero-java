@@ -1,0 +1,215 @@
+name: Windows Cross-Compile (VcPkg)
+
+on:
+  push:
+    branches: ['**']
+  release:
+    types: [published]
+
+jobs:
+  build-windows:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 120
+
+    steps:
+      - name: Detect Architecture - (All)
+        id: arch
+        run: |
+          echo "ARCH=amd64" >> $GITHUB_ENV
+#          if [[ "${{ inputs.variant }}" == *"arm64"* ]]; then
+#            echo "ARCH=arm64" >> $GITHUB_ENV
+#            echo "OSX_ARCH=arm64" >> $GITHUB_ENV
+#          else
+#            echo "ARCH=amd64" >> $GITHUB_ENV
+#            echo "OSX_ARCH=x86_64" >> $GITHUB_ENV
+#          fi
+
+      - name: Setup JDK - (All)
+        uses: actions/setup-java@v4
+        with:
+          distribution: "liberica"
+          java-version: "21"
+
+      - name: Configure git for Line Endings - (All)
+        run: |
+          git config --global core.autocrlf input
+
+      - name: Checkout Source - (All)
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Use CMake 3.24 - (All)
+        uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "3.24.0"
+
+      - name: Install Core Cross-Compile Tools and Utilities
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            g++-mingw-w64-x86-64 \
+            ccache \
+            git \
+            curl \
+            unzip \
+            make
+
+      - name: Cache Vcpkg
+        id: cache-vcpkg
+        uses: actions/cache@v4
+        with:
+          path: |
+            vcpkg/installed
+            vcpkg/archives
+          key: ${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
+          restore-keys: |
+            ${{ runner.os }}-
+
+      - name: Setup Vcpkg and Install Dependencies
+        run: |
+          # Disable telemetry
+          echo "VCPKG_DISABLE_METRICS=1" >> $GITHUB_ENV
+          echo "VCPKG_BINARY_SOURCES=clear;nuget,GitHubActions,readwrite" >> $GITHUB_ENV
+
+          # Git Vcpkg
+          git clone https://github.com/microsoft/vcpkg.git
+
+          # Define Dependencies
+          cat <<EOF > vcpkg/vcpkg.json
+          {
+            "name": "monero-dependencies",
+            "version": "0.1.0",
+            "dependencies": [
+              "boost-chrono",
+              "boost-date-time",
+              "boost-filesystem",
+              "boost-program-options",
+              "boost-regex",
+              "boost-serialization",
+              "boost-system",
+              "boost-thread",
+              "openssl",
+              "zeromq",
+              "libsodium",
+              "hidapi",
+              "unbound",
+              "liblzma",
+              "readline",
+              "expat",
+              "qttools",
+              "libusb",
+              "protobuf"
+            ]
+          }
+          EOF
+
+          # Inject custom unbound port
+          mkdir -p vcpkg/ports/unbound
+
+          cat <<EOF > vcpkg/ports/unbound/vcpkg.json
+          {
+            "name": "unbound",
+            "version-string": "1.17.1",
+            "description": "DNS resolver library",
+            "homepage": "https://nlnetlabs.nl/projects/unbound/",
+            "dependencies": [
+              "openssl",
+              "expat"
+            ]
+          }
+          EOF
+
+          cat <<EOF > vcpkg/ports/unbound/portfile.cmake
+          vcpkg_from_github(
+              OUT_SOURCE_PATH SOURCE_PATH
+              REPO NLnetLabs/unbound
+              REF release-1.17.1
+              SHA512 0d1f3e8b6f9c4e2a7d8e9f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7
+          )
+
+          vcpkg_configure_cmake(
+              SOURCE_PATH \${SOURCE_PATH}
+              PREFER_NINJA
+          )
+
+          vcpkg_install_cmake()
+          vcpkg_copy_pdbs()
+          EOF
+
+          # Install Vcpkg
+          ./vcpkg/bootstrap-vcpkg.sh
+
+          # Create custom triplets for release-only builds
+          mkdir -p vcpkg/triplets/community
+
+          cat <<EOF > vcpkg/triplets/community/x64-mingw-static-release.cmake
+          set(VCPKG_TARGET_ARCHITECTURE x64)
+          set(VCPKG_LIBRARY_LINKAGE static)
+          set(VCPKG_CRT_LINKAGE static)
+          set(VCPKG_BUILD_TYPE release)
+          EOF
+
+          cat <<EOF > vcpkg/triplets/community/x64-mingw-shared-release.cmake
+          set(VCPKG_TARGET_ARCHITECTURE x64)
+          set(VCPKG_LIBRARY_LINKAGE shared)
+          set(VCPKG_CRT_LINKAGE shared)
+          set(VCPKG_BUILD_TYPE release)
+          EOF
+
+          # Install Dependencies via Vcpkg
+          cd vcpkg
+          ./vcpkg install --triplet x64-mingw-static-release
+          ./vcpkg install --triplet x64-mingw-shared-release
+
+          # List Packages Installed via Vcpkg
+          ./vcpkg list
+
+      - name: Verify Boost Libraries
+        run: |
+          find /usr ${{ github.workspace }}/vcpkg -name '*boost*' | grep -E 'chrono|date_time|filesystem|program_options|regex|serialization|wserialization|system|thread|locale'
+
+      - name: Dependency Introspection
+        run: |
+          find /usr ${{ github.workspace }}/vcpkg -name '*cmake*' -o -name '*ssl*' -o -name '*crypto*' \
+                         -o -name '*zmq*' -o -name '*sodium*' -o -name '*usb*' \
+                         -o -name '*boost*' -o -name '*proto*' -o -name '*unbound*' \
+                         -o -name '*hidapi*' -o -name '*backtrace*' -o -name '*unwind*' \
+                         -o -name '*readline*' | grep -v -e "/man/" -e "/doc/" -e python
+
+      - name: Configure and Build (Portable) - (Windows)
+        run: |
+          mkdir -p build-portable
+          cmake -S . -B build-portable \
+            -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake \
+            -DCMAKE_SYSTEM_PROCESSOR=$ARCH \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DSTATIC_BUILD=ON \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          cmake --build build-portable --parallel 4
+
+      - name: Configure and Build (Dynamic) - (Windows)
+        run: |
+          mkdir -p build-dynamic
+          cmake -S . -B build-dynamic \
+            -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake \
+            -DCMAKE_SYSTEM_PROCESSOR=$ARCH \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_STATIC=OFF \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          cmake --build build-dynamic --parallel 4
+
+      - name: Upload Build Artifacts (Portable) - (Windows)
+        uses: actions/upload-artifact@v4
+        with:
+          name: portable-build
+          path: build-portable
+
+      - name: Upload Build Artifacts (Dynamic) - (Windows)
+        uses: actions/upload-artifact@v4
+        with:
+          name: dynamic-build
+          path: build-dynamic
