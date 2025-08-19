@@ -152,20 +152,16 @@ jobs:
           echo "VCPKG_DEFAULT_TRIPLET=x64-mingw-static" >> $GITHUB_ENV
 
           git clone https://github.com/microsoft/vcpkg.git
+          git -C vcpkg checkout 2023.07.21
           ./vcpkg/bootstrap-vcpkg.sh
 
-          ./vcpkg/vcpkg install --allow-unsupported \
-            boost-date-time \
-            boost-filesystem \
-            boost-program-options \
-            boost-regex \
-            boost-serialization \
-            boost-system \
-            boost-thread \
+          ./vcpkg/vcpkg install \
+            boost[chrono,date-time,filesystem,program-options,regex,serialization,system,thread] \
             openssl \
             zeromq \
             libsodium \
             hidapi \
+            unbound \
             libunwind \
             liblzma \
             readline \
