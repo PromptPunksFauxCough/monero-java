@@ -19,7 +19,7 @@ jobs:
       - name: Detect Architecture - (All)
         id: arch
         run: |
-          ARCH=amd64
+          echo "ARCH=amd64" >> $GITHUB_ENV
 #          if [[ "${{ inputs.variant }}" == *"arm64"* ]]; then
 #            echo "ARCH=arm64" >> $GITHUB_ENV
 #            echo "OSX_ARCH=arm64" >> $GITHUB_ENV
