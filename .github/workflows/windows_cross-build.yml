@@ -148,10 +148,16 @@ jobs:
           set(VCPKG_BUILD_TYPE release)
           EOF
 
+          printf "THE MOTHER FUCKING STATIC RELEASE TRIPLET:"
+          cat vcpkg/triplets/community/x64-mingw-static-release.cmake
+
           cat <<EOF > vcpkg/triplets/community/x64-mingw-dynamic-release.cmake
           include(${CMAKE_CURRENT_LIST_DIR}/x64-mingw-dynamic.cmake)
           set(VCPKG_BUILD_TYPE release)
           EOF
+
+          printf "THE MOTHER FUCKING DYNAMIC RELEASE TRIPLET:"
+          cat vcpkg/triplets/community/x64-mingw-static-release.cmake
 
           # Install Dependencies via Vcpkg
           cd vcpkg
