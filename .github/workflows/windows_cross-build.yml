@@ -144,12 +144,12 @@ jobs:
 
           # Create custom triplets for release-only builds
           cat <<EOF > vcpkg/triplets/community/x64-mingw-static-release.cmake
-          include(${CMAKE_CURRENT_LIST_DIR}/x64-mingw-static.cmake)
+          include(./x64-mingw-static.cmake)
           set(VCPKG_BUILD_TYPE release)
           EOF
 
           cat <<EOF > vcpkg/triplets/community/x64-mingw-dynamic-release.cmake
-          include(${CMAKE_CURRENT_LIST_DIR}/x64-mingw-dynamic.cmake)
+          include(./x64-mingw-dynamic.cmake)
           set(VCPKG_BUILD_TYPE release)
           EOF
 
