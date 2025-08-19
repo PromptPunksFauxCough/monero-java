@@ -143,22 +143,20 @@ jobs:
           ./vcpkg/bootstrap-vcpkg.sh
 
           # Create custom triplets for release-only builds
-          mkdir -p vcpkg/triplets/custom
-
-          cat <<EOF > vcpkg/triplets/custom/x64-mingw-static-release.cmake
-          include(../community/x64-mingw-static.cmake)
+          cat <<EOF > vcpkg/triplets/community/x64-mingw-static-release.cmake
+          include(${CMAKE_CURRENT_LIST_DIR}/../community/x64-mingw-static.cmake)
           set(VCPKG_BUILD_TYPE release)
           EOF
 
-          cat <<EOF > vcpkg/triplets/custom/x64-mingw-dynamic-release.cmake
-          include(../community/x64-mingw-dynamic.cmake)
+          cat <<EOF > vcpkg/triplets/community/x64-mingw-dynamic-release.cmake
+          include(${CMAKE_CURRENT_LIST_DIR}/../community/x64-mingw-dynamic.cmake)
           set(VCPKG_BUILD_TYPE release)
           EOF
 
           # Install Dependencies via Vcpkg
           cd vcpkg
-          ./vcpkg install --triplet x64-mingw-static-release --allow-unsupported
-          ./vcpkg install --triplet x64-mingw-dynamic-release --allow-unsupported
+          ./vcpkg install --triplet x64-mingw-static-release
+          ./vcpkg install --triplet x64-mingw-dynamic-release
 
           # List Packages Installed via Vcpkg
           ./vcpkg list
