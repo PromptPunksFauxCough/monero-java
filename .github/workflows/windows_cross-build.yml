@@ -167,7 +167,6 @@ jobs:
             qttools \
             libusb \
             protobuf \
-            doxygen \
             graphviz \
             --triplet=x64-mingw-static
 
