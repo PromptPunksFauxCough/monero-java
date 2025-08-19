@@ -1,4 +1,4 @@
-name: Cross-Compile Windows (Ubuntu + MSYS2 Layout + Boost -fPIC + Cache)
+name: Windows Cross-Compile (MSYS2 + Boost -fPIC)
 
 on:
   push:
@@ -36,16 +36,7 @@ jobs:
           sudo mkdir -p /mingw64/include /mingw64/lib /mingw64/bin
           sudo chown -R $USER:$USER /mingw64
 
-      - name: Restore Boost Cache
-        id: boost-cache
-        uses: actions/cache@v4
-        with:
-          path: /mingw64/boost
-          key: ubuntu-boost-1.74-pic-${{ hashFiles('**/CMakeLists.txt') }}
-          restore-keys: ubuntu-boost-1.74-pic-
-
-      - name: Build Boost (if cache miss)
-        if: steps.boost-cache.outputs.cache-hit != 'true'
+      - name: Build Boost
         run: |
           curl -LO https://archives.boost.io/release/1.74.0/source/boost_1_74_0.zip
           unzip boost_1_74_0.zip
@@ -56,7 +47,7 @@ jobs:
                toolset=gcc \
                cxxflags="-fPIC" \
                link=static threading=multi address-model=64 \
-               target-os=windows \
+               variant=release \
                install
           cp -r /mingw64/boost/include/boost /mingw64/include/
           cp -r /mingw64/boost/lib/* /mingw64/lib/
