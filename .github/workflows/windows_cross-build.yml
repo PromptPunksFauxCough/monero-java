@@ -167,6 +167,14 @@ jobs:
           # List Packages Installed via Vcpkg
           ./vcpkg list
 
+      - name: Upload Boost-Chrono Build Log
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: boost-chrono-log
+          path: vcpkg/buildtrees/boost-chrono/install-x64-mingw-static-release-rel-out.log
+
+
       - name: Verify Boost Libraries
         run: |
           find /usr ${{ github.workspace }}/vcpkg -name '*boost*' | grep -E 'chrono|date_time|filesystem|program_options|regex|serialization|wserialization|system|thread|locale'
