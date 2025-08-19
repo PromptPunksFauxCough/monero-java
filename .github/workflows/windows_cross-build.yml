@@ -146,12 +146,17 @@ jobs:
 
       - name: Setup Vcpkg and Install Dependencies
         run: |
-          git clone https://github.com/microsoft/vcpkg.git
-          ./vcpkg/bootstrap-vcpkg.sh
-          ./vcpkg/vcpkg update
-
+          # Disable telemetry and set triplet
+          echo "VCPKG_DISABLE_METRICS=1" >> $GITHUB_ENV
           echo "VCPKG_BINARY_SOURCES=clear;nuget,GitHubActions,readwrite" >> $GITHUB_ENV
           echo "VCPKG_DEFAULT_TRIPLET=x64-mingw-static" >> $GITHUB_ENV
+
+          git clone https://github.com/microsoft/vcpkg.git
+          ./vcpkg/bootstrap-vcpkg.sh
+
+          # Pin Vcpkg to a known working commit to ensure 'unbound' is available
+          # and for consistent, reproducible builds.
+          git -C vcpkg checkout 2023.11.20
 
           ./vcpkg/vcpkg install \
             boost[chrono,date-time,filesystem,program-options,regex,serialization,system,thread] \
