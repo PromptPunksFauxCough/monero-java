@@ -189,6 +189,7 @@ jobs:
           ./vcpkg/bootstrap-vcpkg.sh
 
           ./vcpkg/vcpkg install \
+            abseil:x64-mingw-static --version=20230125.3 \
             boost-chrono \
             boost-date-time \
             boost-filesystem \
