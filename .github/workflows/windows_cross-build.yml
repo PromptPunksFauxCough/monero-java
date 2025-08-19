@@ -156,7 +156,7 @@ jobs:
 
           # Pin Vcpkg to a known working commit to ensure 'unbound' is available
           # and for consistent, reproducible builds.
-          git -C vcpkg checkout 2023.11.20
+          git -C vcpkg checkout 9447d2b2c918349d921356f906f32e6a6e761662
 
           ./vcpkg/vcpkg install \
             boost[chrono,date-time,filesystem,program-options,regex,serialization,system,thread] \
