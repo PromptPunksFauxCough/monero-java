@@ -227,7 +227,9 @@ jobs:
 
           ./vcpkg/bootstrap-vcpkg.sh
 
-          ./vcpkg/vcpkg install --triplet=x64-mingw-static --overlay-ports=vcpkg/ports
+          cd vcpkg
+          ./vcpkg install --triplet=x64-mingw-static --overlay-ports=ports
+
 
 #      - name: Download, Build & Install Boost
 #        run: |
