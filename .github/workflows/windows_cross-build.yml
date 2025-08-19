@@ -146,13 +146,21 @@ jobs:
           mkdir -p vcpkg/triplets/community
 
           cat <<EOF > vcpkg/triplets/community/x64-mingw-static-release.cmake
-          include(../x64-mingw-static.cmake)
+          set(VCPKG_TARGET_ARCHITECTURE x64)
+          set(VCPKG_LIBRARY_LINKAGE static)
+          set(VCPKG_CRT_LINKAGE static)
           set(VCPKG_BUILD_TYPE release)
+          set(VCPKG_CMAKE_SYSTEM_NAME Windows)
+          set(VCPKG_CHAINLOAD_TOOLCHAIN_FILE "${CMAKE_CURRENT_LIST_DIR}/../toolchains/mingw-w64.cmake")
           EOF
 
           cat <<EOF > vcpkg/triplets/community/x64-mingw-shared-release.cmake
-          include(../x64-mingw-shared.cmake)
+          set(VCPKG_TARGET_ARCHITECTURE x64)
+          set(VCPKG_LIBRARY_LINKAGE shared)
+          set(VCPKG_CRT_LINKAGE shared)
           set(VCPKG_BUILD_TYPE release)
+          set(VCPKG_CMAKE_SYSTEM_NAME Windows)
+          set(VCPKG_CHAINLOAD_TOOLCHAIN_FILE "${CMAKE_CURRENT_LIST_DIR}/../toolchains/mingw-w64.cmake")
           EOF
 
           # Install Dependencies via Vcpkg
