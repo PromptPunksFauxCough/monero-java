@@ -146,12 +146,12 @@ jobs:
           mkdir -p vcpkg/triplets/community
 
           cat <<EOF > vcpkg/triplets/community/x64-mingw-static-release.cmake
-          include(../community/x64-mingw-static.cmake)
+          include(../x64-mingw-static.cmake)
           set(VCPKG_BUILD_TYPE release)
           EOF
 
           cat <<EOF > vcpkg/triplets/community/x64-mingw-shared-release.cmake
-          include(../community/x64-mingw-shared.cmake)
+          include(../x64-mingw-shared.cmake)
           set(VCPKG_BUILD_TYPE release)
           EOF
 
