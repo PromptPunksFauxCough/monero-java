@@ -1,168 +1,168 @@
-name: macOS (Universal Binaries)
-
-on:
-  push:
-    branches:
-      - '**'
-  release:
-    types: [published]
-
-jobs:
-  build-x86_64:
-    runs-on: macos-13
-    timeout-minutes: 60
-
-    steps:
-    - name: Checkout Source (Intel)
-      uses: actions/checkout@v4
-      with:
-        submodules: false
-
-    - name: Use CMake 3.24 (Intel)
-      uses: lukka/get-cmake@latest
-      with:
-        cmakeVersion: "3.24.0"
-
-    - name: Setup JDK (Intel)
-      uses: actions/setup-java@v4
-      with:
-        distribution: "liberica"
-        java-version: "21"
-
-    - name: Install Dependencies via Homebrew (Intel)
-      run: |
-        brew update
-        brew install autoconf autogen \
-        automake binutils coreutils \
-        pkg-config boost openssl hidapi \
-        zmq libpgm unbound libsodium \
-        miniupnpc readline expat ccache \
-        doxygen graphviz libunwind-headers \
-        xz protobuf libusb
-
-    - name: Build (Intel)
-      run: |
-        export CMAKE_PREFIX_PATH="/usr/local/opt/boost:/usr/local/opt/openssl:/usr/local/opt/zeromq:/usr/local/opt/hidapi:/usr/local/opt/libusb:/usr/local/opt/libpgm:/usr/local/opt/unbound:/usr/local/opt/libsodium:/usr/local/opt/miniupnpc:/usr/local/opt/readline:/usr/local/opt/expat:/usr/local/opt/doxygen:/usr/local/opt/graphviz:/usr/local/opt/libunwind-headers:/usr/local/opt/protobuf:/usr/local/opt/xz"
-        
-        mkdir -p build-x86_64
-        cd build-x86_64
-        cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=x86_64
-        cmake --build . --parallel 4
-
-    - name: Upload x86_64 artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: macos-x86_64-binaries
-        path: |
-          build-x86_64/libmonero-java.dylib
-          build-x86_64/libmonero-cpp.dylib
-
-  build-aarch64:
-    runs-on: macos-14
-    timeout-minutes: 60
-
-    steps:
-    - name: Checkout Source (Silicon)
-      uses: actions/checkout@v4
-      with:
-        submodules: false
-
-    - name: Cache Homebrew Dependencies (Silicon)
-      uses: actions/cache@v3
-      with:
-        path: /opt/homebrew/Cellar
-        key: ${{ runner.os }}-brew-aarch64-${{ hashFiles('**/Brewfile') }}
-        restore-keys: |
-          ${{ runner.os }}-brew-aarch64-
-
-    - name: Use CMake 3.24 (Silicon)
-      uses: lukka/get-cmake@latest
-      with:
-        cmakeVersion: "3.24.0"
-
-    - name: Setup JDK (Silicon)
-      uses: actions/setup-java@v4
-      with:
-        distribution: "liberica"
-        java-version: "21"
-    
-    - name: Install Dependencies via Homebrew (Silicon)
-      run: |
-        brew update
-        brew install autoconf autogen \
-        automake binutils coreutils \
-        pkg-config boost openssl hidapi \
-        zmq libpgm unbound libsodium \
-        miniupnpc readline expat ccache \
-        doxygen graphviz libunwind-headers \
-        xz protobuf libusb
-
-    - name: Build aarch64
-      run: |
-        export CMAKE_PREFIX_PATH="/opt/homebrew/opt/boost:/opt/homebrew/opt/openssl:/opt/homebrew/opt/zeromq:/opt/homebrew/opt/hidapi:/opt/homebrew/opt/libusb:/opt/homebrew/opt/libpgm:/opt/homebrew/opt/unbound:/opt/homebrew/opt/libsodium:/opt/homebrew/opt/miniupnpc:/opt/homebrew/opt/readline:/opt/homebrew/opt/expat:/opt/homebrew/opt/doxygen:/opt/homebrew/opt/graphviz:/opt/homebrew/opt/libunwind-headers:/opt/homebrew/opt/protobuf:/opt/homebrew/opt/xz"
-        
-        mkdir -p build-aarch64
-        cd build-aarch64
-        cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64
-        cmake --build . --parallel 4
-    
-    - name: Upload aarch64 artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: macos-aarch64-binaries
-        path: |
-          build-aarch64/libmonero-java.dylib
-          build-aarch64/libmonero-cpp.dylib
-
-  create-universal-binary:
-    needs: [build-x86_64, build-aarch64]
-    runs-on: macos-14
-    timeout-minutes: 30
-
-    steps:
-    - name: Download x86_64 binaries
-      uses: actions/download-artifact@v4
-      with:
-        name: macos-x86_64-binaries
-        path: ./x86_64
-
-    - name: Download aarch64 binaries
-      uses: actions/download-artifact@v4
-      with:
-        name: macos-aarch64-binaries
-        path: ./aarch64
-    
-    - name: Create universal binaries
-      # This step will only run if the workflow was triggered by a release
-      if: github.event_name == 'release'
-      run: |
-        lipo -create \
-        ./x86_64/libmonero-java.dylib \
-        ./aarch64/libmonero-java.dylib \
-        -output ./libmonero-java.dylib
-
-        lipo -create \
-        ./x86_64/libmonero-cpp.dylib \
-        ./aarch64/libmonero-cpp.dylib \
-        -output ./libmonero-cpp.dylib
-        
-        lipo -info ./libmonero-java.dylib
-        lipo -info ./libmonero-cpp.dylib
-        
-    - name: Package release artifact
-      # This step will also only run if the workflow was triggered by a release
-      if: github.event_name == 'release'
-      run: |
-        zip monero-java-macos.zip libmonero-java.dylib libmonero-cpp.dylib
-
-    - name: Upload Release Asset
-      # This step will also only run if the workflow was triggered by a release
-      if: github.event_name == 'release'
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./monero-java-macos.zip
-        asset_name: monero-java-macos.zip
-        asset_content_type: application/zip
+#name: macOS (Universal Binaries)
+#
+#on:
+#  push:
+#    branches:
+#      - '**'
+#  release:
+#    types: [published]
+#
+#jobs:
+#  build-x86_64:
+#    runs-on: macos-13
+#    timeout-minutes: 60
+#
+#    steps:
+#    - name: Checkout Source (Intel)
+#      uses: actions/checkout@v4
+#      with:
+#        submodules: false
+#
+#    - name: Use CMake 3.24 (Intel)
+#      uses: lukka/get-cmake@latest
+#      with:
+#        cmakeVersion: "3.24.0"
+#
+#    - name: Setup JDK (Intel)
+#      uses: actions/setup-java@v4
+#      with:
+#        distribution: "liberica"
+#        java-version: "21"
+#
+#    - name: Install Dependencies via Homebrew (Intel)
+#      run: |
+#        brew update
+#        brew install autoconf autogen \
+#        automake binutils coreutils \
+#        pkg-config boost openssl hidapi \
+#        zmq libpgm unbound libsodium \
+#        miniupnpc readline expat ccache \
+#        doxygen graphviz libunwind-headers \
+#        xz protobuf libusb
+#
+#    - name: Build (Intel)
+#      run: |
+#        export CMAKE_PREFIX_PATH="/usr/local/opt/boost:/usr/local/opt/openssl:/usr/local/opt/zeromq:/usr/local/opt/hidapi:/usr/local/opt/libusb:/usr/local/opt/libpgm:/usr/local/opt/unbound:/usr/local/opt/libsodium:/usr/local/opt/miniupnpc:/usr/local/opt/readline:/usr/local/opt/expat:/usr/local/opt/doxygen:/usr/local/opt/graphviz:/usr/local/opt/libunwind-headers:/usr/local/opt/protobuf:/usr/local/opt/xz"
+#        
+#        mkdir -p build-x86_64
+#        cd build-x86_64
+#        cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=x86_64
+#        cmake --build . --parallel 4
+#
+#    - name: Upload x86_64 artifacts
+#      uses: actions/upload-artifact@v4
+#      with:
+#        name: macos-x86_64-binaries
+#        path: |
+#          build-x86_64/libmonero-java.dylib
+#          build-x86_64/libmonero-cpp.dylib
+#
+#  build-aarch64:
+#    runs-on: macos-14
+#    timeout-minutes: 60
+#
+#    steps:
+#    - name: Checkout Source (Silicon)
+#      uses: actions/checkout@v4
+#      with:
+#        submodules: false
+#
+#    - name: Cache Homebrew Dependencies (Silicon)
+#      uses: actions/cache@v3
+#      with:
+#        path: /opt/homebrew/Cellar
+#        key: ${{ runner.os }}-brew-aarch64-${{ hashFiles('**/Brewfile') }}
+#        restore-keys: |
+#          ${{ runner.os }}-brew-aarch64-
+#
+#    - name: Use CMake 3.24 (Silicon)
+#      uses: lukka/get-cmake@latest
+#      with:
+#        cmakeVersion: "3.24.0"
+#
+#    - name: Setup JDK (Silicon)
+#      uses: actions/setup-java@v4
+#      with:
+#        distribution: "liberica"
+#        java-version: "21"
+#    
+#    - name: Install Dependencies via Homebrew (Silicon)
+#      run: |
+#        brew update
+#        brew install autoconf autogen \
+#        automake binutils coreutils \
+#        pkg-config boost openssl hidapi \
+#        zmq libpgm unbound libsodium \
+#        miniupnpc readline expat ccache \
+#        doxygen graphviz libunwind-headers \
+#        xz protobuf libusb
+#
+#    - name: Build aarch64
+#      run: |
+#        export CMAKE_PREFIX_PATH="/opt/homebrew/opt/boost:/opt/homebrew/opt/openssl:/opt/homebrew/opt/zeromq:/opt/homebrew/opt/hidapi:/opt/homebrew/opt/libusb:/opt/homebrew/opt/libpgm:/opt/homebrew/opt/unbound:/opt/homebrew/opt/libsodium:/opt/homebrew/opt/miniupnpc:/opt/homebrew/opt/readline:/opt/homebrew/opt/expat:/opt/homebrew/opt/doxygen:/opt/homebrew/opt/graphviz:/opt/homebrew/opt/libunwind-headers:/opt/homebrew/opt/protobuf:/opt/homebrew/opt/xz"
+#        
+#        mkdir -p build-aarch64
+#        cd build-aarch64
+#        cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64
+#        cmake --build . --parallel 4
+#    
+#    - name: Upload aarch64 artifacts
+#      uses: actions/upload-artifact@v4
+#      with:
+#        name: macos-aarch64-binaries
+#        path: |
+#          build-aarch64/libmonero-java.dylib
+#          build-aarch64/libmonero-cpp.dylib
+#
+#  create-universal-binary:
+#    needs: [build-x86_64, build-aarch64]
+#    runs-on: macos-14
+#    timeout-minutes: 30
+#
+#    steps:
+#    - name: Download x86_64 binaries
+#      uses: actions/download-artifact@v4
+#      with:
+#        name: macos-x86_64-binaries
+#        path: ./x86_64
+#
+#    - name: Download aarch64 binaries
+#      uses: actions/download-artifact@v4
+#      with:
+#        name: macos-aarch64-binaries
+#        path: ./aarch64
+#    
+#    - name: Create universal binaries
+#      # This step will only run if the workflow was triggered by a release
+#      if: github.event_name == 'release'
+#      run: |
+#        lipo -create \
+#        ./x86_64/libmonero-java.dylib \
+#        ./aarch64/libmonero-java.dylib \
+#        -output ./libmonero-java.dylib
+#
+#        lipo -create \
+#        ./x86_64/libmonero-cpp.dylib \
+#        ./aarch64/libmonero-cpp.dylib \
+#        -output ./libmonero-cpp.dylib
+#        
+#        lipo -info ./libmonero-java.dylib
+#        lipo -info ./libmonero-cpp.dylib
+#        
+#    - name: Package release artifact
+#      # This step will also only run if the workflow was triggered by a release
+#      if: github.event_name == 'release'
+#      run: |
+#        zip monero-java-macos.zip libmonero-java.dylib libmonero-cpp.dylib
+#
+#    - name: Upload Release Asset
+#      # This step will also only run if the workflow was triggered by a release
+#      if: github.event_name == 'release'
+#      uses: actions/upload-release-asset@v1
+#      env:
+#        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#      with:
+#        upload_url: ${{ github.event.release.upload_url }}
+#        asset_path: ./monero-java-macos.zip
+#        asset_name: monero-java-macos.zip
+#        asset_content_type: application/zip
