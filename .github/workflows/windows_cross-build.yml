@@ -137,7 +137,25 @@ jobs:
             libzmq3-dev \
             libsodium-dev \
             libhidapi-dev \
-            libunbound-dev
+            libunbound-dev \
+            pkg-config \
+            libunwind8-dev \
+            liblzma-dev \
+            libreadline6-dev \
+            libexpat1-dev \
+            qttools5-dev-tools \
+            libusb-1.0-0-dev \
+            libprotobuf-dev \
+            protobuf-compiler \
+            libudev-dev \
+            python3 \
+            doxygen \
+            graphviz \
+            git \
+            curl \
+            autoconf \
+            libtool \
+            gperf
 
           # Create the CMake toolchain file to correctly configure the cross-compiler
           TOOLCHAIN_PREFIX="x86_64-w64-mingw32"
@@ -153,27 +171,6 @@ jobs:
           # Update Alternatives
           sudo update-alternatives --set x86_64-w64-mingw32-g++ $(which x86_64-w64-mingw32-g++-posix)
           sudo update-alternatives --set x86_64-w64-mingw32-gcc $(which x86_64-w64-mingw32-gcc-posix)
-
-
-# These are dependancies for ubuntu but, not explicitly mentioned in windows build docs so, not really sure if these are pulled in by other deps in the msys env or, are already there etc.
-#            pkg-config \
-#            libunwind8-dev \
-#            liblzma-dev \
-#            libreadline6-dev \
-#            libexpat1-dev \
-#            qttools5-dev-tools \
-#            libusb-1.0-0-dev \
-#            libprotobuf-dev \
-#            protobuf-compiler \
-#            libudev-dev \
-#            python3 \
-#            doxygen \
-#            graphviz \
-#            git \
-#            curl \
-#            autoconf \
-#            libtool \
-#            gperf
 
       - name: Download and Extract Boost
         run: |
