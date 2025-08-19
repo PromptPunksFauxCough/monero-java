@@ -209,13 +209,6 @@ jobs:
           vcpkg_copy_pdbs()
           EOF
 
-          # Clean stale build artifacts and cache
-          cd vcpkg
-          ./vcpkg remove --outdated || true
-          ./vcpkg remove --recurse --triplet x64-mingw-static-release || true
-          ./vcpkg remove --recurse --triplet x64-mingw-shared-release || true
-          rm -rf buildtrees packages downloads vcpkg_installed
-
           # Install Vcpkg
           ./vcpkg/bootstrap-vcpkg.sh
 
@@ -236,13 +229,19 @@ jobs:
           set(VCPKG_BUILD_TYPE release)
           EOF
 
-          # Install Dependencies via Vcpkg
+          # Clean stale build artifacts and cache
           cd vcpkg
+          ./vcpkg remove --outdated || true
+          ./vcpkg remove --recurse --triplet x64-mingw-static-release || true
+          ./vcpkg remove --recurse --triplet x64-mingw-shared-release || true
+          rm -rf buildtrees packages downloads vcpkg_installed
+
+          # Install Dependencies via Vcpkg
           ./vcpkg install --triplet x64-mingw-static-release
           ./vcpkg install --triplet x64-mingw-shared-release
 
           # List Packages Installed via Vcpkg
-          ./vcpkg/vcpkg list
+          ./vcpkg list
 
 #      - name: Download, Build & Install Boost
 #        run: |
