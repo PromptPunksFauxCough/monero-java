@@ -16,34 +16,6 @@ jobs:
         shell: msys2 {0}
 
     steps:
-      - name: Detect Architecture - (All)
-        id: arch
-        run: |
-          echo "ARCH=amd64" >> $GITHUB_ENV
-#          if [[ "${{ inputs.variant }}" == *"arm64"* ]]; then
-#            echo "ARCH=arm64" >> $GITHUB_ENV
-#            echo "OSX_ARCH=arm64" >> $GITHUB_ENV
-#          else
-#            echo "ARCH=amd64" >> $GITHUB_ENV
-#            echo "OSX_ARCH=x86_64" >> $GITHUB_ENV
-#          fi
-
-
-      - name: Setup JDK
-        uses: actions/setup-java@v4
-        with:
-          distribution: "liberica"
-          java-version: "21"
-
-      - name: Configure Git for line endings
-        run: |
-          git config --global core.autocrlf input
-
-      - name: Checkout source
-        uses: actions/checkout@v4
-        with:
-          submodules: false
-
       - name: Setup MSYS2
         uses: msys2/setup-msys2@v2
         with:
@@ -146,6 +118,33 @@ jobs:
           path: ${{ github.workspace }}/.ccache
           key: ${{ runner.os }}-ccache-${{ hashFiles('**/*.cpp', '**/*.c', '**/*.h', '**/CMakeLists.txt') }}
           restore-keys: ${{ runner.os }}-ccache-
+
+      - name: Detect Architecture - (All)
+        id: arch
+        run: |
+          echo "ARCH=amd64" >> $GITHUB_ENV
+#          if [[ "${{ inputs.variant }}" == *"arm64"* ]]; then
+#            echo "ARCH=arm64" >> $GITHUB_ENV
+#            echo "OSX_ARCH=arm64" >> $GITHUB_ENV
+#          else
+#            echo "ARCH=amd64" >> $GITHUB_ENV
+#            echo "OSX_ARCH=x86_64" >> $GITHUB_ENV
+#          fi
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: "liberica"
+          java-version: "21"
+
+      - name: Configure Git for line endings
+        run: |
+          git config --global core.autocrlf input
+
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          submodules: false
 
 #      - name: Configure CMake
 #        run: |
