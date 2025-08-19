@@ -152,7 +152,40 @@ jobs:
           echo "VCPKG_DEFAULT_TRIPLET=x64-mingw-static" >> $GITHUB_ENV
 
           git clone https://github.com/microsoft/vcpkg.git
-          git -C vcpkg checkout 3c1f6e3f3a3c6c8e7b6c9e7e3f1b2c3d4e5f6a7b
+
+          # Bring back unbound from banishment
+          mkdir -p vcpkg/ports/unbound
+
+          cat <<EOF > vcpkg/ports/unbound/vcpkg.json
+          {
+            "name": "unbound",
+            "version-string": "1.17.1",
+            "description": "DNS resolver library",
+            "homepage": "https://nlnetlabs.nl/projects/unbound/",
+            "dependencies": [
+              "openssl",
+              "expat"
+            ]
+          }
+          EOF
+
+          cat <<EOF > vcpkg/ports/unbound/portfile.cmake
+          vcpkg_from_github(
+              OUT_SOURCE_PATH SOURCE_PATH
+              REPO NLnetLabs/unbound
+              REF release-1.17.1
+              SHA512 0d1f3e8b6f9c4e2a7d8e9f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7
+          )
+
+          vcpkg_configure_cmake(
+              SOURCE_PATH \${SOURCE_PATH}
+              PREFER_NINJA
+          )
+
+          vcpkg_install_cmake()
+          vcpkg_copy_pdbs()
+          EOF
+
           ./vcpkg/bootstrap-vcpkg.sh
 
           ./vcpkg/vcpkg install \
