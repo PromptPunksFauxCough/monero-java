@@ -189,11 +189,11 @@ jobs:
 
       - name: Verify Boost Libraries
         run: |
-          sudo find / -name '*boost*' | grep -E 'chrono|date_time|filesystem|program_options|regex|serialization|wserialization|system|thread|locale'
+          find /usr /opt -name '*boost*' | grep -E 'chrono|date_time|filesystem|program_options|regex|serialization|wserialization|system|thread|locale'
 
       - name: Dependency Introspection
         run: |
-          sudo find / -name '*cmake*' -o -name '*ssl*' -o -name '*crypto*' \
+          find /usr /opt -name '*cmake*' -o -name '*ssl*' -o -name '*crypto*' \
                          -o -name '*zmq*' -o -name '*sodium*' -o -name '*usb*' \
                          -o -name '*boost*' -o -name '*proto*' -o -name '*unbound*' \
                          -o -name '*hidapi*' -o -name '*backtrace*' -o -name '*unwind*' \
