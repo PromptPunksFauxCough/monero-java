@@ -1,4 +1,4 @@
-name: Windows Cross-Compile (MSYS2 + Boost -fPIC)
+name: Windows Cross-Compile (VcPkg)
 
 on:
   push:
@@ -214,8 +214,9 @@ jobs:
           ./vcpkg/bootstrap-vcpkg.sh
 
           # Install Dependencies via Vcpkg
-          ./vcpkg/vcpkg install --triplet=x64-mingw-static --overlay-ports=ports
-          ./vcpkg/vcpkg install --triplet=x64-mingw-dynamic --overlay-ports=ports
+          cd vcpkg 
+          ./vcpkg install --triplet=x64-mingw-static --overlay-ports=ports
+          ./vcpkg install --triplet=x64-mingw-dynamic --overlay-ports=ports
 
           # List Packages Installed via Vcpkg
           ./vcpkg/vcpkg list
