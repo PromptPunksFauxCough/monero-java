@@ -192,11 +192,11 @@ jobs:
 
       - name: Verify Boost Libraries
         run: |
-          find /mingw64/ -name '*boost*' | grep -E 'chrono|date_time|filesystem|program_options|regex|serialization|wserialization|system|thread|locale'
+          sudo find / -name '*boost*' | grep -E 'chrono|date_time|filesystem|program_options|regex|serialization|wserialization|system|thread|locale'
 
       - name: Dependency Introspection
         run: |
-          find /mingw64/ -name '*cmake*' -o -name '*ssl*' -o -name '*crypto*' \
+          sudo find / -name '*cmake*' -o -name '*ssl*' -o -name '*crypto*' \
                          -o -name '*zmq*' -o -name '*sodium*' -o -name '*usb*' \
                          -o -name '*boost*' -o -name '*proto*' -o -name '*unbound*' \
                          -o -name '*hidapi*' -o -name '*backtrace*' -o -name '*unwind*' \
