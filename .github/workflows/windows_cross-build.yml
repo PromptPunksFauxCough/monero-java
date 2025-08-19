@@ -189,7 +189,14 @@ jobs:
           ./vcpkg/bootstrap-vcpkg.sh
 
           ./vcpkg/vcpkg install \
-            boost[chrono,date-time,filesystem,program-options,regex,serialization,system,thread] \
+            boost-chrono \
+            boost-date-time \
+            boost-filesystem \
+            boost-program-options \
+            boost-regex \
+            boost-serialization \
+            boost-system \
+            boost-thread \
             openssl \
             zeromq \
             libsodium \
