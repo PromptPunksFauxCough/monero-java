@@ -153,7 +153,46 @@ jobs:
 
           git clone https://github.com/microsoft/vcpkg.git
 
-          # Bring back unbound from banishment
+          # Create manifest file
+          cat <<EOF > vcpkg/vcpkg.json
+          {
+            "name": "monero-java",
+            "version": "0.1.0",
+            "dependencies": [
+              {
+                "name": "abseil",
+                "version>=": "20230125.3"
+              },
+              {
+                "name": "boost",
+                "features": [
+                  "chrono",
+                  "date-time",
+                  "filesystem",
+                  "program-options",
+                  "regex",
+                  "serialization",
+                  "system",
+                  "thread"
+                ]
+              },
+              "openssl",
+              "zeromq",
+              "libsodium",
+              "hidapi",
+              "unbound",
+              "liblzma",
+              "readline",
+              "expat",
+              "qttools",
+              "libusb",
+              "protobuf",
+              "graphviz"
+            ]
+          }
+          EOF
+
+          # Inject custom unbound port
           mkdir -p vcpkg/ports/unbound
 
           cat <<EOF > vcpkg/ports/unbound/vcpkg.json
@@ -188,29 +227,7 @@ jobs:
 
           ./vcpkg/bootstrap-vcpkg.sh
 
-          ./vcpkg/vcpkg install \
-            abseil:x64-mingw-static --version=20230125.3 \
-            boost-chrono \
-            boost-date-time \
-            boost-filesystem \
-            boost-program-options \
-            boost-regex \
-            boost-serialization \
-            boost-system \
-            boost-thread \
-            openssl \
-            zeromq \
-            libsodium \
-            hidapi \
-            unbound \
-            liblzma \
-            readline \
-            expat \
-            qttools \
-            libusb \
-            protobuf \
-            graphviz \
-            --triplet=x64-mingw-static
+          ./vcpkg/vcpkg install --triplet=x64-mingw-static --overlay-ports=vcpkg/ports
 
 #      - name: Download, Build & Install Boost
 #        run: |
