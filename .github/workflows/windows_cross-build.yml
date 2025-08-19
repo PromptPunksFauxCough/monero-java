@@ -143,6 +143,7 @@ jobs:
           # Disable telemetry
           echo "VCPKG_DISABLE_METRICS=1" >> $GITHUB_ENV
           echo "VCPKG_BINARY_SOURCES=clear;nuget,GitHubActions,readwrite" >> $GITHUB_ENV
+          echo "VCPKG_BUILD_TYPE=release" >> $GITHUB_ENV
 
           # Git Vcpkg
           git clone https://github.com/microsoft/vcpkg.git
