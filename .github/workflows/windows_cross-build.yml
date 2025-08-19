@@ -158,6 +158,7 @@ jobs:
           {
             "name": "monero-java",
             "version": "0.1.0",
+            "builtin-baseline": "ee0973d8090e4e3e452244bb50d34c25fe907dc2",
             "dependencies": [
               {
                 "name": "abseil",
