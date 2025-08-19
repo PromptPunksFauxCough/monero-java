@@ -115,9 +115,8 @@ jobs:
 #          find /mingw64/lib -name '*boost*' | head -n 10
 ## Retired
 
-      - name: Setup Windows Cross-Compile Environment
+      - name: Install Core Cross-Compile Tools and Utilities
         run: |
-          # Update package lists and install core build tools (equivalent to base-devel)
           sudo apt-get update
           sudo apt-get install -y \
             build-essential \
@@ -128,72 +127,70 @@ jobs:
             curl \
             unzip \
             make \
-            gettext
-
-          # Install the equivalent of the mingw-w64-x86_64-* pacman packages
-          sudo apt-get install -y \
-            libboost-all-dev \
-            libssl-dev \
-            libzmq3-dev \
-            libsodium-dev \
-            libhidapi-dev \
-            libunbound-dev \
-            pkg-config \
-            libunwind8-dev \
-            liblzma-dev \
-            libreadline6-dev \
-            libexpat1-dev \
-            qttools5-dev-tools \
-            libusb-1.0-0-dev \
-            libprotobuf-dev \
-            protobuf-compiler \
-            libudev-dev \
-            python3 \
-            doxygen \
-            graphviz \
-            git \
-            curl \
+            gettext \
             autoconf \
             libtool \
+            pkg-config \
             gperf
 
-          # Create the CMake toolchain file to correctly configure the cross-compiler
-          TOOLCHAIN_PREFIX="x86_64-w64-mingw32"
-          echo "set(CMAKE_SYSTEM_NAME Windows)
-          set(CMAKE_C_COMPILER /usr/bin/${TOOLCHAIN_PREFIX}-gcc)
-          set(CMAKE_CXX_COMPILER /usr/bin/${TOOLCHAIN_PREFIX}-g++)
-          set(CMAKE_RC_COMPILER /usr/bin/${TOOLCHAIN_PREFIX}-windres)
-          set(CMAKE_FIND_ROOT_PATH \"/usr/${TOOLCHAIN_PREFIX}\")
-          set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
-          set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
-          set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)" > mingw-w64-x86_64-toolchain.cmake
+      - name: Cache Vcpkg
+        id: cache-vcpkg
+        uses: actions/cache@v4
+        with:
+          path: |
+            vcpkg/installed
+            vcpkg/archives
+          key: ${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
+          restore-keys: |
+            ${{ runner.os }}-
 
-          # Update Alternatives
-          sudo update-alternatives --set x86_64-w64-mingw32-g++ $(which x86_64-w64-mingw32-g++-posix)
-          sudo update-alternatives --set x86_64-w64-mingw32-gcc $(which x86_64-w64-mingw32-gcc-posix)
-
-      - name: Download and Extract Boost
+      - name: Setup Vcpkg and Install Dependencies
         run: |
-          curl -LO https://archives.boost.io/release/1.74.0/source/boost_1_74_0.zip
-          unzip boost_1_74_0.zip
+          git clone https://github.com/microsoft/vcpkg.git
+          ./vcpkg/bootstrap-vcpkg.sh
+          ./vcpkg/vcpkg update
 
-      - name: Build and Install Boost
-        run: |
-          cd boost_1_74_0
-          mkdir -p /opt/boost-pic
-          ./bootstrap.sh --prefix=/opt/boost-pic --with-toolset=gcc
-          ./b2 --with-chrono --with-date_time --with-filesystem --with-program_options \
-               --with-regex --with-serialization --with-system --with-thread \
-               --with-locale toolset=gcc link=static threading=multi address-model=64 \
-               --prefix=/opt/boost-pic install
+          echo "VCPKG_BINARY_SOURCES=clear;nuget,GitHubActions,readwrite" >> $GITHUB_ENV
+          echo "VCPKG_DEFAULT_TRIPLET=x64-mingw-static" >> $GITHUB_ENV
+
+          ./vcpkg/vcpkg install \
+            boost[chrono,date-time,filesystem,program-options,regex,serialization,system,thread] \
+            openssl \
+            zeromq \
+            libsodium \
+            hidapi \
+            unbound \
+            libunwind \
+            liblzma \
+            readline \
+            expat \
+            qttools \
+            libusb \
+            protobuf \
+            doxygen \
+            graphviz \
+            --triplet=x64-mingw-static
+
+#      - name: Download, Build & Install Boost
+#        run: |
+#          curl -LO https://archives.boost.io/release/1.74.0/source/boost_1_74_0.zip
+#          unzip boost_1_74_0.zip && cd boost_1_74_0
+#
+#          echo "using gcc : mingw : x86_64-w64-mingw32-g++ ;" > user-config.jam
+#          ./bootstrap.sh --prefix=$GITHUB_WORKSPACE/boost_windows_PIC --with-toolset=gcc-mingw
+#
+#          ./b2 cxxflags="-fPIC" linkflags="-fPIC" --with-chrono --with-date_time --with-filesystem --with-program_options \
+#              --with-regex --with-serialization --with-system --with-thread \
+#              --with-locale toolset=gcc-mingw link=static runtime-link=static threading=multi \
+#              address-model=64 --prefix=$GITHUB_WORKSPACE/boost_windows_PIC install
 
       - name: Verify Boost Libraries
         run: |
-          find /usr /opt -name '*boost*' | grep -E 'chrono|date_time|filesystem|program_options|regex|serialization|wserialization|system|thread|locale'
+          find /usr ${{ github.workspace }}/vcpkg -name '*boost*' | grep -E 'chrono|date_time|filesystem|program_options|regex|serialization|wserialization|system|thread|locale'
 
       - name: Dependency Introspection
         run: |
-          find /usr /opt -name '*cmake*' -o -name '*ssl*' -o -name '*crypto*' \
+          find /usr ${{ github.workspace }}/vcpkg -name '*cmake*' -o -name '*ssl*' -o -name '*crypto*' \
                          -o -name '*zmq*' -o -name '*sodium*' -o -name '*usb*' \
                          -o -name '*boost*' -o -name '*proto*' -o -name '*unbound*' \
                          -o -name '*hidapi*' -o -name '*backtrace*' -o -name '*unwind*' \
@@ -203,22 +200,22 @@ jobs:
         run: |
           mkdir -p build-portable
           cmake -S . -B build-portable \
-            -DCMAKE_TOOLCHAIN_FILE=mingw-w64-x86_64-toolchain.cmake \
+            -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake \
             -DCMAKE_SYSTEM_PROCESSOR=$ARCH \
             -DCMAKE_BUILD_TYPE=Release \
-            -DBUILD_STATIC=ON \
-            -DBOOST_ROOT=/opt/boost-pic \
-            -DBoost_NO_SYSTEM_PATHS=ON \
-            -DBOOST_INCLUDEDIR=/opt/boost-pic/include \
-            -DBOOST_LIBRARYDIR=/opt/boost-pic/lib
+            -DSTATIC_BUILD=ON \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
           cmake --build build-portable --parallel 4
 
       - name: Configure and Build (Dynamic) - (Windows)
         run: |
           mkdir -p build-dynamic
           cmake -S . -B build-dynamic \
-            -DCMAKE_TOOLCHAIN_FILE=mingw-w64-x86_64-toolchain.cmake \
+            -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake \
             -DCMAKE_SYSTEM_PROCESSOR=$ARCH \
             -DCMAKE_BUILD_TYPE=Release \
-            -DBUILD_STATIC=OFF
+            -DBUILD_STATIC=OFF \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
           cmake --build build-dynamic --parallel 4
