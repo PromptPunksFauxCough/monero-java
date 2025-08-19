@@ -1,4 +1,4 @@
-name: Build macOS Universal Binary
+name: macOS (Universal Binaries)
 
 on:
   push:
@@ -13,38 +13,36 @@ jobs:
     timeout-minutes: 60
 
     steps:
-    - name: Checkout source
+    - name: Checkout Source (Intel)
       uses: actions/checkout@v4
       with:
         submodules: false
 
-    - name: Cache Homebrew dependencies
-      uses: actions/cache@v3
-      with:
-        path: /usr/local/Homebrew/Cellar
-        key: ${{ runner.os }}-brew-x86_64-${{ hashFiles('**/Brewfile') }}
-        restore-keys: |
-          ${{ runner.os }}-brew-x86_64-
-
-    - name: Use CMake 3.24
+    - name: Use CMake 3.24 (Intel)
       uses: lukka/get-cmake@latest
       with:
         cmakeVersion: "3.24.0"
 
-    - name: Setup JDK
+    - name: Setup JDK (Intel)
       uses: actions/setup-java@v4
       with:
         distribution: "liberica"
         java-version: "21"
 
-    - name: Install dependencies via Homebrew
+    - name: Install Dependencies via Homebrew (Intel)
       run: |
         brew update
-        brew install boost@1.85 openssl@3 zeromq hidapi pkg-config
+        brew install autoconf autogen \
+        automake binutils coreutils \
+        pkg-config boost openssl hidapi \
+        zmq libpgm unbound libsodium \
+        miniupnpc readline expat ccache \
+        doxygen graphviz libunwind-headers \
+        xz protobuf libusb
 
-    - name: Build x86_64
+    - name: Build (Intel)
       run: |
-        export CMAKE_PREFIX_PATH="/usr/local/opt/boost@1.85:/usr/local/opt/openssl@3:/usr/local/opt/zeromq:/usr/local/opt/hidapi"
+        export CMAKE_PREFIX_PATH="/usr/local/opt/boost:/usr/local/opt/openssl:/usr/local/opt/zeromq:/usr/local/opt/hidapi:/usr/local/opt/libusb:/usr/local/opt/libpgm:/usr/local/opt/unbound:/usr/local/opt/libsodium:/usr/local/opt/miniupnpc:/usr/local/opt/readline:/usr/local/opt/expat:/usr/local/opt/doxygen:/usr/local/opt/graphviz:/usr/local/opt/libunwind-headers:/usr/local/opt/protobuf:/usr/local/opt/xz"
         
         mkdir -p build-x86_64
         cd build-x86_64
@@ -64,10 +62,12 @@ jobs:
     timeout-minutes: 60
 
     steps:
-    - name: Checkout source
+    - name: Checkout Source (Silicon)
       uses: actions/checkout@v4
-      
-    - name: Cache Homebrew dependencies
+      with:
+        submodules: false
+
+    - name: Cache Homebrew Dependencies (Silicon)
       uses: actions/cache@v3
       with:
         path: /opt/homebrew/Cellar
@@ -75,25 +75,31 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-brew-aarch64-
 
-    - name: Use CMake 3.24
+    - name: Use CMake 3.24 (Silicon)
       uses: lukka/get-cmake@latest
       with:
         cmakeVersion: "3.24.0"
 
-    - name: Setup JDK
+    - name: Setup JDK (Silicon)
       uses: actions/setup-java@v4
       with:
         distribution: "liberica"
         java-version: "21"
     
-    - name: Install dependencies via Homebrew
+    - name: Install Dependencies via Homebrew (Silicon)
       run: |
         brew update
-        brew install boost@1.85 openssl@3 zeromq hidapi pkg-config
+        brew install autoconf autogen \
+        automake binutils coreutils \
+        pkg-config boost openssl hidapi \
+        zmq libpgm unbound libsodium \
+        miniupnpc readline expat ccache \
+        doxygen graphviz libunwind-headers \
+        xz protobuf libusb
 
     - name: Build aarch64
       run: |
-        export CMAKE_PREFIX_PATH="/opt/homebrew/opt/boost@1.85:/opt/homebrew/opt/openssl@3:/opt/homebrew/opt/zeromq:/opt/homebrew/opt/hidapi"
+        export CMAKE_PREFIX_PATH="/opt/homebrew/opt/boost:/opt/homebrew/opt/openssl:/opt/homebrew/opt/zeromq:/opt/homebrew/opt/hidapi:/opt/homebrew/opt/libusb:/opt/homebrew/opt/libpgm:/opt/homebrew/opt/unbound:/opt/homebrew/opt/libsodium:/opt/homebrew/opt/miniupnpc:/opt/homebrew/opt/readline:/opt/homebrew/opt/expat:/opt/homebrew/opt/doxygen:/opt/homebrew/opt/graphviz:/opt/homebrew/opt/libunwind-headers:/opt/homebrew/opt/protobuf:/opt/homebrew/opt/xz"
         
         mkdir -p build-aarch64
         cd build-aarch64
