@@ -152,7 +152,7 @@ jobs:
           echo "VCPKG_DEFAULT_TRIPLET=x64-mingw-static" >> $GITHUB_ENV
 
           git clone https://github.com/microsoft/vcpkg.git
-          git -C vcpkg checkout 2023.07.21
+          git -C vcpkg checkout 2022.06.01
           ./vcpkg/bootstrap-vcpkg.sh
 
           ./vcpkg/vcpkg install \
