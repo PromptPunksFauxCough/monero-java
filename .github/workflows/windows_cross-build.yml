@@ -157,7 +157,7 @@ jobs:
           EOF
 
           printf "THE MOTHER FUCKING DYNAMIC RELEASE TRIPLET:\n"
-          printf $(cat vcpkg/triplets/community/x64-mingw-static-release.cmake)
+          printf $(cat vcpkg/triplets/community/x64-mingw-dynamic-release.cmake)
 
           # Install Dependencies via Vcpkg
           cd vcpkg
