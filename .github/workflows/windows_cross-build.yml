@@ -11,36 +11,69 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 120
 
-    defaults:
-      run:
-        shell: msys2 {0}
+#    defaults:
+#      run:
+#        shell: msys2 {0}
 
     steps:
-      - name: Setup MSYS2
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: MINGW64
-          update: true
-          release: true
-          cache: true
-          path-type: inherit
-          install: >-
-            mingw-w64-x86_64-toolchain
-            mingw-w64-x86_64-cmake
-            mingw-w64-x86_64-boost
-            mingw-w64-x86_64-openssl
-            mingw-w64-x86_64-zeromq
-            mingw-w64-x86_64-libsodium
-            mingw-w64-x86_64-hidapi
-            mingw-w64-x86_64-unbound
-            mingw-w64-x86_64-ccache
-            git
-            curl
-            unzip
-            make
-            base-devel
-            gettext
+      - name: Detect Architecture - (All)
+        id: arch
+        run: |
+          echo "ARCH=amd64" >> $GITHUB_ENV
+#          if [[ "${{ inputs.variant }}" == *"arm64"* ]]; then
+#            echo "ARCH=arm64" >> $GITHUB_ENV
+#            echo "OSX_ARCH=arm64" >> $GITHUB_ENV
+#          else
+#            echo "ARCH=amd64" >> $GITHUB_ENV
+#            echo "OSX_ARCH=x86_64" >> $GITHUB_ENV
+#          fi
 
+      - name: Setup JDK - (All)
+        uses: actions/setup-java@v4
+        with:
+          distribution: "liberica"
+          java-version: "21"
+
+      - name: Configure git for Line Endings - (All)
+        run: |
+          git config --global core.autocrlf input
+
+      - name: Checkout Source - (All)
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Use CMake 3.24 - (All)
+        uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "3.24.0"
+
+## Retired
+#      - name: Setup MSYS2
+#        uses: msys2/setup-msys2@v2
+#        with:
+#          msystem: MINGW64
+#          update: true
+#          release: true
+#          cache: true
+#          path-type: inherit
+#          install: >-
+#            mingw-w64-x86_64-toolchain
+#            mingw-w64-x86_64-cmake
+#            mingw-w64-x86_64-boost
+#            mingw-w64-x86_64-openssl
+#            mingw-w64-x86_64-zeromq
+#            mingw-w64-x86_64-libsodium
+#            mingw-w64-x86_64-hidapi
+#            mingw-w64-x86_64-unbound
+#            mingw-w64-x86_64-ccache
+#            git
+#            curl
+#            unzip
+#            make
+#            base-devel
+#            gettext
+#
 #
 # These are NOT explicitly documented in the native windows \
 # install steps but, are typically dependancies for other platforms
@@ -55,35 +88,92 @@ jobs:
 #            mingw-w64-x86_64-libusb
 #            mingw-w64-x86_64-readline
 #
+#      - name: Cache CMake (v3.31.6)
+#        id: cache-cmake
+#        uses: actions/cache@v4
+#        with:
+#          path: C:/msys64/var/cache/pacman/pkg/mingw-w64-x86_64-cmake-3.31.6-1-any.pkg.tar.zst
+#          key: ${{ runner.os }}-cmake-3.31.6-cache
+#
+#      - name: Install CMake using cached package
+#        if: steps.cache-cmake.outputs.cache-hit == 'true'
+#        shell: msys2 {0}
+#        run: |
+#          pacman -U --noconfirm C:/msys64/var/cache/pacman/pkg/mingw-w64-x86_64-cmake-3.31.6-1-any.pkg.tar.zst
+#
+#      - name: Download & install CMake using URL
+#        if: steps.cache-cmake.outputs.cache-hit != 'true'
+#        shell: msys2 {0}
+#        run: |
+#          pacman -U --noconfirm https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-cmake-3.31.6-1-any.pkg.tar.zst
+#
+#      - name: Verify Environment
+#        run: |
+#          which cmake
+#          cmake --version
+#          g++ --version
+#          find /mingw64/lib -name '*boost*' | head -n 10
+## Retired
 
-#      - name: Setup CMake v3.24
-#        uses: lukka/get-cmake@v3.24.0
-
-      - name: Cache CMake (v3.31.6)
-        id: cache-cmake
-        uses: actions/cache@v4
-        with:
-          path: C:/msys64/var/cache/pacman/pkg/mingw-w64-x86_64-cmake-3.31.6-1-any.pkg.tar.zst
-          key: ${{ runner.os }}-cmake-3.31.6-cache
-
-      - name: Install CMake using cached package
-        if: steps.cache-cmake.outputs.cache-hit == 'true'
-        shell: msys2 {0}
+      - name: Setup Windows Cross-Compile Environment
         run: |
-          pacman -U --noconfirm C:/msys64/var/cache/pacman/pkg/mingw-w64-x86_64-cmake-3.31.6-1-any.pkg.tar.zst
+          # Update package lists and install core build tools (equivalent to base-devel)
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            g++-mingw-w64-x86-64 \
+            cmake \
+            ccache \
+            git \
+            curl \
+            unzip \
+            make \
+            gettext
 
-      - name: Download & install CMake using URL
-        if: steps.cache-cmake.outputs.cache-hit != 'true'
-        shell: msys2 {0}
-        run: |
-          pacman -U --noconfirm https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-cmake-3.31.6-1-any.pkg.tar.zst
+          # Install the equivalent of the mingw-w64-x86_64-* pacman packages
+          sudo apt-get install -y \
+            libboost-all-dev \
+            libssl-dev \
+            libzmq3-dev \
+            libsodium-dev \
+            libhidapi-dev \
+            libunbound-dev
 
-      - name: Verify Environment
-        run: |
-          which cmake
-          cmake --version
-          g++ --version
-          find /mingw64/lib -name '*boost*' | head -n 10
+          # Create the CMake toolchain file to correctly configure the cross-compiler
+          TOOLCHAIN_PREFIX="x86_64-w64-mingw32"
+          echo "set(CMAKE_SYSTEM_NAME Windows)
+          set(CMAKE_C_COMPILER /usr/bin/${TOOLCHAIN_PREFIX}-gcc)
+          set(CMAKE_CXX_COMPILER /usr/bin/${TOOLCHAIN_PREFIX}-g++)
+          set(CMAKE_RC_COMPILER /usr/bin/${TOOLCHAIN_PREFIX}-windres)
+          set(CMAKE_FIND_ROOT_PATH \"/usr/${TOOLCHAIN_PREFIX}\")
+          set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+          set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+          set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)" > mingw-w64-x86_64-toolchain.cmake
+
+          # Update Alternatives
+          sudo update-alternatives --set x86_64-w64-mingw32-g++ $(which x86_64-w64-mingw32-g++-posix)
+          sudo update-alternatives --set x86_64-w64-mingw32-gcc $(which x86_64-w64-mingw32-gcc-posix)
+
+
+# These are dependancies for ubuntu but, not explicitly mentioned in windows build docs so, not really sure if these are pulled in by other deps in the msys env or, are already there etc.
+#            pkg-config \
+#            libunwind8-dev \
+#            liblzma-dev \
+#            libreadline6-dev \
+#            libexpat1-dev \
+#            qttools5-dev-tools \
+#            libusb-1.0-0-dev \
+#            libprotobuf-dev \
+#            protobuf-compiler \
+#            libudev-dev \
+#            python3 \
+#            doxygen \
+#            graphviz \
+#            git \
+#            curl \
+#            autoconf \
+#            libtool \
+#            gperf
 
       - name: Download and Extract Boost
         run: |
@@ -93,11 +183,12 @@ jobs:
       - name: Build and Install Boost
         run: |
           cd boost_1_74_0
-          ./bootstrap.sh --prefix=/mingw64/opt/boost-pic --with-toolset=gcc
+          mkdir -p /opt/boost-pic
+          ./bootstrap.sh --prefix=/opt/boost-pic --with-toolset=gcc
           ./b2 --with-chrono --with-date_time --with-filesystem --with-program_options \
                --with-regex --with-serialization --with-system --with-thread \
                --with-locale toolset=gcc link=static threading=multi address-model=64 \
-               --prefix=/mingw64/opt/boost-pic install
+               --prefix=/opt/boost-pic install
 
       - name: Verify Boost Libraries
         run: |
@@ -111,84 +202,26 @@ jobs:
                          -o -name '*hidapi*' -o -name '*backtrace*' -o -name '*unwind*' \
                          -o -name '*readline*' | grep -v -e "/man/" -e "/doc/" -e python
 
-      - name: Restore ccache
-        id: cache-ccache
-        uses: actions/cache@v4
-        with:
-          path: ${{ github.workspace }}/.ccache
-          key: ${{ runner.os }}-ccache-${{ hashFiles('**/*.cpp', '**/*.c', '**/*.h', '**/CMakeLists.txt') }}
-          restore-keys: ${{ runner.os }}-ccache-
-
-      - name: Detect Architecture - (All)
-        id: arch
-        run: |
-          echo "ARCH=amd64" >> $GITHUB_ENV
-#          if [[ "${{ inputs.variant }}" == *"arm64"* ]]; then
-#            echo "ARCH=arm64" >> $GITHUB_ENV
-#            echo "OSX_ARCH=arm64" >> $GITHUB_ENV
-#          else
-#            echo "ARCH=amd64" >> $GITHUB_ENV
-#            echo "OSX_ARCH=x86_64" >> $GITHUB_ENV
-#          fi
-
-      - name: Setup JDK
-        uses: actions/setup-java@v4
-        with:
-          distribution: "liberica"
-          java-version: "21"
-
-      - name: Configure Git for line endings
-        run: |
-          git config --global core.autocrlf input
-
-      - name: Checkout source
-        uses: actions/checkout@v4
-        with:
-          submodules: false
-
-#      - name: Configure CMake
-#        run: |
-#          cmake -G "MinGW Makefiles" -B build -DCMAKE_BUILD_TYPE=Release \
-#            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-#            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-#            -DBOOST_ROOT=/mingw64 \
-#            -DOPENSSL_ROOT_DIR=/mingw64 \
-#            -DZeroMQ_ROOT_DIR=/mingw64 \
-#            -DLIBSODIUM_ROOT_DIR=/mingw64 \
-#            -DHIDAPI_INCLUDE_DIR=/mingw64/include \
-#            -DHIDAPI_LIBRARY=/mingw64/lib/libhidapi.a \
-#            -DUNBOUND_INCLUDE_DIR=/mingw64/include \
-#            -DUNBOUND_LIBRARIES=/mingw64/lib/libunbound.a \
-#            # Add more find hints as needed for your orchestration
-#
-#      - name: Build
-#        run: cmake --build build --config Release --parallel 4
-
       - name: Configure and Build (Portable) - (Windows)
         run: |
           mkdir -p build-portable
           cmake -S . -B build-portable \
+            -DCMAKE_TOOLCHAIN_FILE=mingw-w64-x86_64-toolchain.cmake \
             -DCMAKE_SYSTEM_PROCESSOR=$ARCH \
             -DCMAKE_BUILD_TYPE=Release \
             -DBUILD_STATIC=ON \
-            -DBOOST_ROOT=/mingw64/opt/boost-pic \
+            -DBOOST_ROOT=/opt/boost-pic \
             -DBoost_NO_SYSTEM_PATHS=ON \
-            -DBOOST_INCLUDEDIR=/mingw64/opt/boost-pic/include \
-            -DBOOST_LIBRARYDIR=/mingw64/opt/boost-pic/lib
+            -DBOOST_INCLUDEDIR=/opt/boost-pic/include \
+            -DBOOST_LIBRARYDIR=/opt/boost-pic/lib
           cmake --build build-portable --parallel 4
 
       - name: Configure and Build (Dynamic) - (Windows)
         run: |
           mkdir -p build-dynamic
           cmake -S . -B build-dynamic \
+            -DCMAKE_TOOLCHAIN_FILE=mingw-w64-x86_64-toolchain.cmake \
             -DCMAKE_SYSTEM_PROCESSOR=$ARCH \
             -DCMAKE_BUILD_TYPE=Release \
             -DBUILD_STATIC=OFF
           cmake --build build-dynamic --parallel 4
-
-      - name: Save ccache
-        if: always() && steps.cache-ccache.outputs.cache-hit != 'true'
-        uses: actions/cache@v4
-        with:
-          path: ${{ github.workspace }}/.ccache
-          key: ${{ runner.os }}-ccache-${{ hashFiles('**/*.cpp', '**/*.c', '**/*.h', '**/CMakeLists.txt') }}
