@@ -143,7 +143,6 @@ jobs:
           # Disable telemetry
           echo "VCPKG_DISABLE_METRICS=1" >> $GITHUB_ENV
           echo "VCPKG_BINARY_SOURCES=clear;nuget,GitHubActions,readwrite" >> $GITHUB_ENV
-          echo "VCPKG_BUILD_TYPE=release" >> $GITHUB_ENV
 
           # Git Vcpkg
           git clone https://github.com/microsoft/vcpkg.git
@@ -214,10 +213,27 @@ jobs:
           # Install Vcpkg
           ./vcpkg/bootstrap-vcpkg.sh
 
+          # Create custom triplets for release-only builds
+          mkdir -p vcpkg/triplets/community
+
+          cat <<EOF > vcpkg/triplets/community/x64-mingw-static-release.cmake
+          set(VCPKG_TARGET_ARCHITECTURE x64)
+          set(VCPKG_LIBRARY_LINKAGE static)
+          set(VCPKG_CRT_LINKAGE static)
+          set(VCPKG_BUILD_TYPE release)
+          EOF
+
+          cat <<EOF > vcpkg/triplets/community/x64-mingw-shared-release.cmake
+          set(VCPKG_TARGET_ARCHITECTURE x64)
+          set(VCPKG_LIBRARY_LINKAGE shared)
+          set(VCPKG_CRT_LINKAGE shared)
+          set(VCPKG_BUILD_TYPE release)
+          EOF
+
           # Install Dependencies via Vcpkg
-          cd vcpkg 
-          ./vcpkg install --triplet=x64-mingw-static --overlay-ports=ports
-          ./vcpkg install --triplet=x64-mingw-dynamic --overlay-ports=ports
+          cd vcpkg
+          ./vcpkg install boost-chrono:x64-mingw-static-release --overlay-ports=ports
+          ./vcpkg install boost-chrono:x64-mingw-shared-release --overlay-ports=ports
 
           # List Packages Installed via Vcpkg
           ./vcpkg/vcpkg list
