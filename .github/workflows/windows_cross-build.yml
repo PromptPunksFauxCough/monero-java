@@ -72,7 +72,6 @@ jobs:
           # Disable telemetry
           echo "VCPKG_DISABLE_METRICS=1" >> $GITHUB_ENV
           echo "VCPKG_BINARY_SOURCES=clear;nuget,GitHubActions,readwrite" >> $GITHUB_ENV
-          echo "VCPKG_BUILD_TOOLS_OVERRIDE=" >> $GITHUB_ENV
 
           # Git Vcpkg
           git clone https://github.com/microsoft/vcpkg.git
@@ -161,8 +160,8 @@ jobs:
 
           # Install Dependencies via Vcpkg
           cd vcpkg
-          ./vcpkg install --triplet x64-mingw-static-release
-          ./vcpkg install --triplet x64-mingw-shared-release
+          ./vcpkg install --triplet x64-mingw-static-release --allow-unsupported
+          ./vcpkg install --triplet x64-mingw-shared-release --allow-unsupported
 
           # List Packages Installed via Vcpkg
           ./vcpkg list
