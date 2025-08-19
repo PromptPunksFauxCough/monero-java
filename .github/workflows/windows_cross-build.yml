@@ -202,7 +202,6 @@ jobs:
             libsodium \
             hidapi \
             unbound \
-            libunwind \
             liblzma \
             readline \
             expat \
