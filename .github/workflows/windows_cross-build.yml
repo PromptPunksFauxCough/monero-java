@@ -121,17 +121,11 @@ jobs:
           sudo apt-get install -y \
             build-essential \
             g++-mingw-w64-x86-64 \
-            cmake \
             ccache \
             git \
             curl \
             unzip \
-            make \
-            gettext \
-            autoconf \
-            libtool \
-            pkg-config \
-            gperf
+            make
 
       - name: Cache Vcpkg
         id: cache-vcpkg
@@ -146,37 +140,27 @@ jobs:
 
       - name: Setup Vcpkg and Install Dependencies
         run: |
-          # Disable telemetry and set triplet
+          # Disable telemetry
           echo "VCPKG_DISABLE_METRICS=1" >> $GITHUB_ENV
           echo "VCPKG_BINARY_SOURCES=clear;nuget,GitHubActions,readwrite" >> $GITHUB_ENV
-          echo "VCPKG_DEFAULT_TRIPLET=x64-mingw-static" >> $GITHUB_ENV
 
+          # Git Vcpkg
           git clone https://github.com/microsoft/vcpkg.git
 
-          # Create manifest file
+          # Define Dependencies
           cat <<EOF > vcpkg/vcpkg.json
           {
-            "name": "monero-java",
+            "name": "monero-dependencies",
             "version": "0.1.0",
-            "builtin-baseline": "ee0973d8090e4e3e452244bb50d34c25fe907dc2",
             "dependencies": [
-              {
-                "name": "abseil",
-                "version>=": "20230125.3"
-              },
-              {
-                "name": "boost",
-                "features": [
-                  "chrono",
-                  "date-time",
-                  "filesystem",
-                  "program-options",
-                  "regex",
-                  "serialization",
-                  "system",
-                  "thread"
-                ]
-              },
+              "boost-chrono",
+              "boost-date-time",
+              "boost-filesystem",
+              "boost-program-options",
+              "boost-regex",
+              "boost-serialization",
+              "boost-system",
+              "boost-thread",
               "openssl",
               "zeromq",
               "libsodium",
@@ -226,11 +210,15 @@ jobs:
           vcpkg_copy_pdbs()
           EOF
 
+          # Install Vcpkg
           ./vcpkg/bootstrap-vcpkg.sh
 
-          cd vcpkg
-          ./vcpkg install --triplet=x64-mingw-static --overlay-ports=ports
+          # Install Dependencies via Vcpkg
+          ./vcpkg/vcpkg install --triplet=x64-mingw-static --overlay-ports=ports
+          ./vcpkg/vcpkg install --triplet=x64-mingw-dynamic --overlay-ports=ports
 
+          # List Packages Installed via Vcpkg
+          ./vcpkg/vcpkg list
 
 #      - name: Download, Build & Install Boost
 #        run: |
@@ -280,3 +268,15 @@ jobs:
             -DCMAKE_C_COMPILER_LAUNCHER=ccache \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
           cmake --build build-dynamic --parallel 4
+
+      - name: Upload Build Artifacts (Portable) - (Windows)
+        uses: actions/upload-artifact@v4
+        with:
+          name: portable-build
+          path: build-portable
+
+      - name: Upload Build Artifacts (Dynamic) - (Windows)
+        uses: actions/upload-artifact@v4
+        with:
+          name: dynamic-build
+          path: build-dynamic
