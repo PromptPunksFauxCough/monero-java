@@ -1,210 +1,210 @@
-name: Windows (PoC)
-
-on:
-  push:
-    branches:
-      - '**'
-  release:
-    types: [published]
-
-jobs:
-  build:
-    runs-on: windows-latest
-    timeout-minutes: 300
-
-    defaults:
-      run:
-        shell: msys2 {0}
-
-    steps:
-      - name: Setup MSYS2 and Dependencies
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: MINGW64
-          update: false
-          release: true
-          cache: true
-          path-type: inherit
-          install: >-
-            mingw-w64-x86_64-toolchain
-            make
-            mingw-w64-x86_64-openssl
-            mingw-w64-x86_64-zeromq
-            mingw-w64-x86_64-libsodium
-            mingw-w64-x86_64-hidapi
-            mingw-w64-x86_64-unbound
-            mingw-w64-x86_64-protobuf
-            mingw-w64-x86_64-libusb
-            mingw-w64-x86_64-readline
-            mingw-w64-x86_64-ccache
-            git
-            gettext
-            base-devel
-            curl
-            unzip
-
-#      - name: Install CMake (v3.31.6)
+#name: Windows (PoC)
+#
+#on:
+#  push:
+#    branches:
+#      - '**'
+#  release:
+#    types: [published]
+#
+#jobs:
+#  build:
+#    runs-on: windows-latest
+#    timeout-minutes: 300
+#
+#    defaults:
+#      run:
+#        shell: msys2 {0}
+#
+#    steps:
+#      - name: Setup MSYS2 and Dependencies
+#        uses: msys2/setup-msys2@v2
+#        with:
+#          msystem: MINGW64
+#          update: false
+#          release: true
+#          cache: true
+#          path-type: inherit
+#          install: >-
+#            mingw-w64-x86_64-toolchain
+#            make
+#            mingw-w64-x86_64-openssl
+#            mingw-w64-x86_64-zeromq
+#            mingw-w64-x86_64-libsodium
+#            mingw-w64-x86_64-hidapi
+#            mingw-w64-x86_64-unbound
+#            mingw-w64-x86_64-protobuf
+#            mingw-w64-x86_64-libusb
+#            mingw-w64-x86_64-readline
+#            mingw-w64-x86_64-ccache
+#            git
+#            gettext
+#            base-devel
+#            curl
+#            unzip
+#
+##      - name: Install CMake (v3.31.6)
+##        run: |
+##          pacman -U --noconfirm https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-cmake-3.31.6-1-any.pkg.tar.zst
+#
+##      - name: Download & install CMake using URL
+##        run: |
+##          pacman -U --noconfirm https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-cmake-3.31.6-1-any.pkg.tar.zst
+#
+#      - name: Cache CMake (v3.31.6)
+#        id: cache-cmake
+#        uses: actions/cache@v4
+#        with:
+#          path: C:/msys64/var/cache/pacman/pkg/mingw-w64-x86_64-cmake-3.31.6-1-any.pkg.tar.zst
+#          key: ${{ runner.os }}-cmake-3.31.6-cache
+#
+#      - name: Install CMake using cached package
+#        if: steps.cache-cmake.outputs.cache-hit == 'true'
+#        shell: msys2 {0}
 #        run: |
-#          pacman -U --noconfirm https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-cmake-3.31.6-1-any.pkg.tar.zst
-
+#          pacman -U --noconfirm C:/msys64/var/cache/pacman/pkg/mingw-w64-x86_64-cmake-3.31.6-1-any.pkg.tar.zst
+#
 #      - name: Download & install CMake using URL
+#        if: steps.cache-cmake.outputs.cache-hit != 'true'
+#        shell: msys2 {0}
 #        run: |
 #          pacman -U --noconfirm https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-cmake-3.31.6-1-any.pkg.tar.zst
-
-      - name: Cache CMake (v3.31.6)
-        id: cache-cmake
-        uses: actions/cache@v4
-        with:
-          path: C:/msys64/var/cache/pacman/pkg/mingw-w64-x86_64-cmake-3.31.6-1-any.pkg.tar.zst
-          key: ${{ runner.os }}-cmake-3.31.6-cache
-
-      - name: Install CMake using cached package
-        if: steps.cache-cmake.outputs.cache-hit == 'true'
-        shell: msys2 {0}
-        run: |
-          pacman -U --noconfirm C:/msys64/var/cache/pacman/pkg/mingw-w64-x86_64-cmake-3.31.6-1-any.pkg.tar.zst
-
-      - name: Download & install CMake using URL
-        if: steps.cache-cmake.outputs.cache-hit != 'true'
-        shell: msys2 {0}
-        run: |
-          pacman -U --noconfirm https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-cmake-3.31.6-1-any.pkg.tar.zst
-
-      - name: Verify CMake Installation
-        run: |
-          which cmake
-          cmake --version
-
-      - name: Download and Extract Boost
-        run: |
-          curl -LO https://archives.boost.io/release/1.74.0/source/boost_1_74_0.zip
-          unzip boost_1_74_0.zip
-
-      - name: Build and Install Boost
-        run: |
-          cd boost_1_74_0
-          ./bootstrap.sh --prefix=/mingw64 --with-toolset=gcc
-          ./b2 --with-chrono --with-date_time --with-filesystem --with-program_options \
-               --with-regex --with-serialization --with-system --with-thread \
-               --with-locale toolset=gcc link=static threading=multi address-model=64 \
-               --prefix=/mingw64 install
-
-      - name: Verify Boost Libraries
-        run: |
-          find /mingw64/ -name '*boost*' | grep -E 'chrono|date_time|filesystem|program_options|regex|serialization|wserialization|system|thread|locale'
-
-      - name: Dependency Introspection
-        run: |
-          find /mingw64/ -name '*cmake*' -o -name '*ssl*' -o -name '*crypto*' \
-                         -o -name '*zmq*' -o -name '*sodium*' -o -name '*usb*' \
-                         -o -name '*boost*' -o -name '*proto*' -o -name '*unbound*' \
-                         -o -name '*hidapi*' -o -name '*backtrace*' -o -name '*unwind*' \
-                         -o -name '*readline*' | grep -v -e "/man/" -e "/doc/" -e python
-
-      - name: Setup JDK
-        uses: actions/setup-java@v4
-        with:
-          distribution: "liberica"
-          java-version: "21"
-
-      - name: Configure Git for line endings
-        run: |
-          git config --global core.autocrlf input
-
-      - name: Checkout source
-        uses: actions/checkout@v4
-        with:
-          submodules: false
-
-      - name: Restore ccache cache
-        id: cache-ccache
-        uses: actions/cache@v4
-        with:
-          path: ${{ github.workspace }}/.ccache
-          key: ${{ runner.os }}-ccache-${{ hashFiles('**/*.cpp', '**/*.c', '**/*.h', '**/CMakeLists.txt') }}
-          restore-keys: ${{ runner.os }}-ccache-
-
-      - name: CMake Configure
-        run: |
-          cmake -DBoost_DEBUG=ON -G "MinGW Makefiles" \
-            -DCMAKE_BUILD_TYPE=Release -B build \
-            -DBOOST_ROOT=/mingw64 -DBoost_ARCHITECTURE=-x64 \
-            -DOPENSSL_ROOT_DIR=/mingw64 -DZeroMQ_ROOT_DIR=/mingw64 \
-            -DZeroMQ_INCLUDE_DIR=/mingw64/include \
-            -DZeroMQ_LIBRARY=/mingw64/lib/libzmq.a \
-            -DLIBSODIUM_ROOT_DIR=/mingw64 \
-            -DLIBUSB_ROOT_DIR=/mingw64 \
-            -DBoost_CHRONO_LIBRARY_RELEASE=/mingw64/lib/libboost_chrono-mgw15-mt-x64-1_74.a \
-            -DBoost_DATE_TIME_LIBRARY_RELEASE=/mingw64/lib/libboost_date_time-mgw15-mt-x64-1_74.a \
-            -DBoost_FILESYSTEM_LIBRARY_RELEASE=/mingw64/lib/libboost_filesystem-mgw15-mt-x64-1_74.a \
-            -DBoost_PROGRAM_OPTIONS_LIBRARY_RELEASE=/mingw64/lib/libboost_program_options-mgw15-mt-x64-1_74.a \
-            -DBoost_REGEX_LIBRARY_RELEASE=/mingw64/lib/libboost_regex-mgw15-mt-x64-1_74.a \
-            -DBoost_SERIALIZATION_LIBRARY_RELEASE=/mingw64/lib/libboost_serialization-mgw15-mt-x64-1_74.a \
-            -DBoost_SYSTEM_LIBRARY_RELEASE=/mingw64/lib/libboost_system-mgw15-mt-x64-1_74.a \
-            -DBoost_THREAD_LIBRARY_RELEASE=/mingw64/lib/libboost_thread-mgw15-mt-x64-1_74.a \
-            -DBoost_LOCALE_LIBRARY_RELEASE=/mingw64/lib/libboost_locale-mgw15-mt-x64-1_74.a \
-            -DBoost_WSERIALIZATION_LIBRARY_RELEASE=/mingw64/lib/libboost_wserialization-mgw15-mt-x64-1_74.a \
-            -DUNBOUND_INCLUDE_DIR=/mingw64/include \
-            -DUNBOUND_LIBRARIES="/mingw64/lib/libunbound.a" \
-            -DHIDAPI_INCLUDE_DIR=/mingw64/include \
-            -DHIDAPI_LIBRARY=/mingw64/lib/libhidapi.a \
-            -DBacktrace_INCLUDE_DIR=/mingw64/include \
-            -DBacktrace_LIBRARIES=/mingw64/lib/libbacktrace.a \
-            -DProtobuf_INCLUDE_DIR=/mingw64/include \
-            -DProtobuf_LIBRARY=/mingw64/lib/libprotobuf.a \
-            -DProtobuf_PROTOC_EXECUTABLE=/mingw64/bin/protoc.exe \
-            -DReadline_ROOT_DIR=/mingw64 \
-            -DReadline_INCLUDE_DIR=/mingw64/include \
-            -DReadline_LIBRARY=/mingw64/lib/libreadline.a \
-            -DRANDOMX_INCLUDE_DIR=$GITHUB_WORKSPACE/external/monero-cpp/external/randomx \
-            -DRANDOMX_LIBRARY_DIR=$GITHUB_WORKSPACE/external/monero-cpp/external/randomx \
-            -DRANDOMX_LIBRARY=$GITHUB_WORKSPACE/external/monero-cpp/external/randomx/librandomx.a \
-            -DCNCRYPTO_INCLUDE_DIR=$GITHUB_WORKSPACE/external/monero-cpp/src/crypto \
-            -DCNCRYPTO_LIBRARY_DIR=$GITHUB_WORKSPACE/external/monero-cpp/src/crypto \
-            -DCNCRYPTO_LIBRARY=$GITHUB_WORKSPACE/external/monero-cpp/src/crypto/libcncrypto.a \
-            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-
-      - name: CMake Build
-        run: |
-          cmake --build build --config Release --parallel 4
-
-      - name: Save ccache cache
-        if: always() && steps.cache-ccache.outputs.cache-hit != 'true'
-        uses: actions/cache@v4
-        with:
-          path: ${{ github.workspace }}/.ccache
-          key: ${{ runner.os }}-ccache-${{ hashFiles('**/*.cpp', '**/*.c', '**/*.h', '**/CMakeLists.txt') }}
-
-      - name: Prepare and package release artifacts
-        if: github.event_name == 'release'
-        run: |
-          mkdir -p dist/windows
-          cp build/libmonero-java.dll dist/windows/
-          cp external/monero-cpp/build/libmonero-cpp.dll dist/windows/
-          cd dist/windows
-          zip monero-java_windows.zip libmonero-java.dll libmonero-cpp.dll
-          tar -czvf monero-java_windows.tar.gz libmonero-java.dll libmonero-cpp.dll
-        shell: bash
-
-      - name: Upload zip Release Asset
-        if: github.event_name == 'release'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./dist/windows/monero-java_windows.zip
-          asset_name: monero-java_windows.zip
-          asset_content_type: application/zip
-
-      - name: Upload tar.gz Release Asset
-        if: github.event_name == 'release'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./dist/windows/monero-java_windows.tar.gz
-          asset_name: monero-java_windows.tar.gz
-          asset_content_type: application/gzip
+#
+#      - name: Verify CMake Installation
+#        run: |
+#          which cmake
+#          cmake --version
+#
+#      - name: Download and Extract Boost
+#        run: |
+#          curl -LO https://archives.boost.io/release/1.74.0/source/boost_1_74_0.zip
+#          unzip boost_1_74_0.zip
+#
+#      - name: Build and Install Boost
+#        run: |
+#          cd boost_1_74_0
+#          ./bootstrap.sh --prefix=/mingw64 --with-toolset=gcc
+#          ./b2 --with-chrono --with-date_time --with-filesystem --with-program_options \
+#               --with-regex --with-serialization --with-system --with-thread \
+#               --with-locale toolset=gcc link=static threading=multi address-model=64 \
+#               --prefix=/mingw64 install
+#
+#      - name: Verify Boost Libraries
+#        run: |
+#          find /mingw64/ -name '*boost*' | grep -E 'chrono|date_time|filesystem|program_options|regex|serialization|wserialization|system|thread|locale'
+#
+#      - name: Dependency Introspection
+#        run: |
+#          find /mingw64/ -name '*cmake*' -o -name '*ssl*' -o -name '*crypto*' \
+#                         -o -name '*zmq*' -o -name '*sodium*' -o -name '*usb*' \
+#                         -o -name '*boost*' -o -name '*proto*' -o -name '*unbound*' \
+#                         -o -name '*hidapi*' -o -name '*backtrace*' -o -name '*unwind*' \
+#                         -o -name '*readline*' | grep -v -e "/man/" -e "/doc/" -e python
+#
+#      - name: Setup JDK
+#        uses: actions/setup-java@v4
+#        with:
+#          distribution: "liberica"
+#          java-version: "21"
+#
+#      - name: Configure Git for line endings
+#        run: |
+#          git config --global core.autocrlf input
+#
+#      - name: Checkout source
+#        uses: actions/checkout@v4
+#        with:
+#          submodules: false
+#
+#      - name: Restore ccache cache
+#        id: cache-ccache
+#        uses: actions/cache@v4
+#        with:
+#          path: ${{ github.workspace }}/.ccache
+#          key: ${{ runner.os }}-ccache-${{ hashFiles('**/*.cpp', '**/*.c', '**/*.h', '**/CMakeLists.txt') }}
+#          restore-keys: ${{ runner.os }}-ccache-
+#
+#      - name: CMake Configure
+#        run: |
+#          cmake -DBoost_DEBUG=ON -G "MinGW Makefiles" \
+#            -DCMAKE_BUILD_TYPE=Release -B build \
+#            -DBOOST_ROOT=/mingw64 -DBoost_ARCHITECTURE=-x64 \
+#            -DOPENSSL_ROOT_DIR=/mingw64 -DZeroMQ_ROOT_DIR=/mingw64 \
+#            -DZeroMQ_INCLUDE_DIR=/mingw64/include \
+#            -DZeroMQ_LIBRARY=/mingw64/lib/libzmq.a \
+#            -DLIBSODIUM_ROOT_DIR=/mingw64 \
+#            -DLIBUSB_ROOT_DIR=/mingw64 \
+#            -DBoost_CHRONO_LIBRARY_RELEASE=/mingw64/lib/libboost_chrono-mgw15-mt-x64-1_74.a \
+#            -DBoost_DATE_TIME_LIBRARY_RELEASE=/mingw64/lib/libboost_date_time-mgw15-mt-x64-1_74.a \
+#            -DBoost_FILESYSTEM_LIBRARY_RELEASE=/mingw64/lib/libboost_filesystem-mgw15-mt-x64-1_74.a \
+#            -DBoost_PROGRAM_OPTIONS_LIBRARY_RELEASE=/mingw64/lib/libboost_program_options-mgw15-mt-x64-1_74.a \
+#            -DBoost_REGEX_LIBRARY_RELEASE=/mingw64/lib/libboost_regex-mgw15-mt-x64-1_74.a \
+#            -DBoost_SERIALIZATION_LIBRARY_RELEASE=/mingw64/lib/libboost_serialization-mgw15-mt-x64-1_74.a \
+#            -DBoost_SYSTEM_LIBRARY_RELEASE=/mingw64/lib/libboost_system-mgw15-mt-x64-1_74.a \
+#            -DBoost_THREAD_LIBRARY_RELEASE=/mingw64/lib/libboost_thread-mgw15-mt-x64-1_74.a \
+#            -DBoost_LOCALE_LIBRARY_RELEASE=/mingw64/lib/libboost_locale-mgw15-mt-x64-1_74.a \
+#            -DBoost_WSERIALIZATION_LIBRARY_RELEASE=/mingw64/lib/libboost_wserialization-mgw15-mt-x64-1_74.a \
+#            -DUNBOUND_INCLUDE_DIR=/mingw64/include \
+#            -DUNBOUND_LIBRARIES="/mingw64/lib/libunbound.a" \
+#            -DHIDAPI_INCLUDE_DIR=/mingw64/include \
+#            -DHIDAPI_LIBRARY=/mingw64/lib/libhidapi.a \
+#            -DBacktrace_INCLUDE_DIR=/mingw64/include \
+#            -DBacktrace_LIBRARIES=/mingw64/lib/libbacktrace.a \
+#            -DProtobuf_INCLUDE_DIR=/mingw64/include \
+#            -DProtobuf_LIBRARY=/mingw64/lib/libprotobuf.a \
+#            -DProtobuf_PROTOC_EXECUTABLE=/mingw64/bin/protoc.exe \
+#            -DReadline_ROOT_DIR=/mingw64 \
+#            -DReadline_INCLUDE_DIR=/mingw64/include \
+#            -DReadline_LIBRARY=/mingw64/lib/libreadline.a \
+#            -DRANDOMX_INCLUDE_DIR=$GITHUB_WORKSPACE/external/monero-cpp/external/randomx \
+#            -DRANDOMX_LIBRARY_DIR=$GITHUB_WORKSPACE/external/monero-cpp/external/randomx \
+#            -DRANDOMX_LIBRARY=$GITHUB_WORKSPACE/external/monero-cpp/external/randomx/librandomx.a \
+#            -DCNCRYPTO_INCLUDE_DIR=$GITHUB_WORKSPACE/external/monero-cpp/src/crypto \
+#            -DCNCRYPTO_LIBRARY_DIR=$GITHUB_WORKSPACE/external/monero-cpp/src/crypto \
+#            -DCNCRYPTO_LIBRARY=$GITHUB_WORKSPACE/external/monero-cpp/src/crypto/libcncrypto.a \
+#            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+#            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+#
+#      - name: CMake Build
+#        run: |
+#          cmake --build build --config Release --parallel 4
+#
+#      - name: Save ccache cache
+#        if: always() && steps.cache-ccache.outputs.cache-hit != 'true'
+#        uses: actions/cache@v4
+#        with:
+#          path: ${{ github.workspace }}/.ccache
+#          key: ${{ runner.os }}-ccache-${{ hashFiles('**/*.cpp', '**/*.c', '**/*.h', '**/CMakeLists.txt') }}
+#
+#      - name: Prepare and package release artifacts
+#        if: github.event_name == 'release'
+#        run: |
+#          mkdir -p dist/windows
+#          cp build/libmonero-java.dll dist/windows/
+#          cp external/monero-cpp/build/libmonero-cpp.dll dist/windows/
+#          cd dist/windows
+#          zip monero-java_windows.zip libmonero-java.dll libmonero-cpp.dll
+#          tar -czvf monero-java_windows.tar.gz libmonero-java.dll libmonero-cpp.dll
+#        shell: bash
+#
+#      - name: Upload zip Release Asset
+#        if: github.event_name == 'release'
+#        uses: actions/upload-release-asset@v1
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#        with:
+#          upload_url: ${{ github.event.release.upload_url }}
+#          asset_path: ./dist/windows/monero-java_windows.zip
+#          asset_name: monero-java_windows.zip
+#          asset_content_type: application/zip
+#
+#      - name: Upload tar.gz Release Asset
+#        if: github.event_name == 'release'
+#        uses: actions/upload-release-asset@v1
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#        with:
+#          upload_url: ${{ github.event.release.upload_url }}
+#          asset_path: ./dist/windows/monero-java_windows.tar.gz
+#          asset_name: monero-java_windows.tar.gz
+#          asset_content_type: application/gzip
