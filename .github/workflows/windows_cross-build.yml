@@ -209,10 +209,10 @@ jobs:
 
       - name: Setup Conan and Install Dependencies
         run: |
-          # Install Conan
-          pip install conan --upgrade
+          # Install Conan 2.x
+          pip install "conan>=2.0" --upgrade
 
-          # Disable telemetry
+          # Disable telemetry (Conan 2.x uses config install or config set differently)
           conan config set general.telemetry=disabled
 
           # Detect and configure profile
@@ -220,6 +220,9 @@ jobs:
 
           # Create conanfile.txt with required dependencies
           cat <<EOF > conanfile.txt
+          [tool_requires]
+          cmake/3.27.1
+
           [requires]
           boost/1.77.0
           openssl/3.1.3
@@ -278,15 +281,15 @@ jobs:
                   self.cpp_info.libs = ["unbound"]
           EOF
 
-          # Export and install custom Unbound package
-          conan export . --name=unbound --version=1.17.1
+          # Export custom Unbound package (Conan 2.x syntax)
+          conan export . --name=unbound --version=1.17.1 --user=local --channel=testing
           cd ..
 
-          # Install all dependencies
-          conan install . --output-folder=build --build=missing
+          # Install all dependencies using Conan 2.x layout
+          conan install conanfile.txt --output-folder=build --build=missing --profile=default
 
           # List installed packages
-          conan list
+          conan list --format=short
 
 
       - name: Verify Boost Libraries
