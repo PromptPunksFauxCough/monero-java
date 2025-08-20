@@ -129,21 +129,14 @@ jobs:
             "name": "monero-dependencies",
             "version": "0.1.0",
             "dependencies": [
-              {
-                "name": "boost",
-                "version>=": "1.74.0",
-                "default-features": false,
-                "features": [
-                  "chrono",
-                  "date-time",
-                  "filesystem",
-                  "program-options",
-                  "regex",
-                  "serialization",
-                  "system",
-                  "thread"
-                ]
-              },
+              "boost-chrono",
+              "boost-date-time",
+              "boost-filesystem",
+              "boost-program-options",
+              "boost-regex",
+              "boost-serialization",
+              "boost-system",
+              "boost-thread",
               "openssl",
               "zeromq",
               "libsodium",
