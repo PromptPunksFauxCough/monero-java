@@ -44,16 +44,29 @@ jobs:
         with:
           cmakeVersion: "3.24.0"
 
-      - name: Install Core Cross-Compile Tools and Utilities
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            build-essential \
-            g++-mingw-w64-x86-64 \
-            ccache \
-            git \
-            curl \
-            unzip \
+#      - name: Install Core Cross-Compile Tools and Utilities
+#        run: |
+#          sudo apt-get update
+#          sudo apt-get install -y \
+#            build-essential \
+#            g++-mingw-w64-x86-64 \
+#            ccache \
+#            git \
+#            curl \
+#            unzip \
+#            make
+
+      - name: Cache and Install Core Cross-Compile Tools and Utilities
+        id: cache-apt
+        uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: |
+            build-essential
+            g++-mingw-w64-x86-64
+            ccache
+            git
+            curl
+            unzip
             make
 
       - name: Cache Vcpkg
