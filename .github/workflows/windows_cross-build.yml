@@ -157,7 +157,13 @@ jobs:
               "protobuf",
               "graphviz"
             ],
-            "builtin-baseline": "9e7bfb1bcd1fa2e6e0755c4076441360b9c9ded7"
+            "builtin-baseline": "9e7bfb1bcd1fa2e6e0755c4076441360b9c9ded7",
+            "overrides": [
+              {
+                "name": "boost",
+                "version": "1.74.0"
+              }
+            ]
           }
           EOF
 
