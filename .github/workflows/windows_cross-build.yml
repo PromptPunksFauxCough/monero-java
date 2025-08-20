@@ -113,6 +113,16 @@ jobs:
               SHA512 0d1f3e8b6f9c4e2a7d8e9f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7
           )
 
+          vcpkg_configure_cmake(
+              SOURCE_PATH \${SOURCE_PATH}
+              PREFER_NINJA
+          )
+
+          vcpkg_install_cmake()
+          vcpkg_copy_pdbs()
+
+          EOF
+
           # Define Dependencies
           cat <<EOF > vcpkg/vcpkg.json
           {
@@ -149,15 +159,6 @@ jobs:
             ],
             "builtin-baseline": "9e7bfb1bcd1fa2e6e0755c4076441360b9c9ded7"
           }
-          EOF
-
-          vcpkg_configure_cmake(
-              SOURCE_PATH \${SOURCE_PATH}
-              PREFER_NINJA
-          )
-
-          vcpkg_install_cmake()
-          vcpkg_copy_pdbs()
           EOF
 
           # Install Vcpkg
