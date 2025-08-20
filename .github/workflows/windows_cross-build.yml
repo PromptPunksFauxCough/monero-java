@@ -9,7 +9,7 @@ on:
 jobs:
   build-windows:
     runs-on: ubuntu-22.04
-    timeout-minutes: 121
+    timeout-minutes: 120
 
     steps:
       - name: Detect Architecture - (All)
@@ -150,7 +150,7 @@ jobs:
               "protobuf",
               "graphviz"
             ],
-            "builtin-baseline": "9e7bfb1bcd1fa2e6e0755c4076441360b9c9ded7",
+            "builtin-baseline": "b2a65a6a666e81404098939c381c828230554e56",
             "overrides": [
               {
                 "name": "boost",
