@@ -122,7 +122,8 @@ jobs:
               "libusb",
               "protobuf",
               "graphviz"
-            ]
+            ],
+            "builtin-baseline": "9e7bfb1bcd1fa2e6e0755c4076441360b9c9ded7"
           }
           EOF
 
@@ -166,9 +167,6 @@ jobs:
           cat <<EOF > vcpkg/triplets/community/x64-mingw-static-release.cmake
           include(triplets/community/x64-mingw-static.cmake)
           set(VCPKG_BUILD_TYPE release)
-          # Force C++11 so <mutex> is detected
-          set(VCPKG_CXX_FLAGS_RELEASE "${VCPKG_CXX_FLAGS_RELEASE} -std=gnu++11")
-          set(VCPKG_C_FLAGS_RELEASE   "${VCPKG_C_FLAGS_RELEASE}   -std=gnu11")
           EOF
 
           printf "THE MOTHER FUCKING STATIC RELEASE TRIPLET:\n"
@@ -177,7 +175,6 @@ jobs:
           cat <<EOF > vcpkg/triplets/community/x64-mingw-dynamic-release.cmake
           include(triplets/community/x64-mingw-dynamic.cmake)
           set(VCPKG_BUILD_TYPE release)
-          set(VCPKG_C_FLAGS_RELEASE   "${VCPKG_C_FLAGS_RELEASE}   -std=gnu11")
           EOF
 
           printf "THE MOTHER FUCKING DYNAMIC RELEASE TRIPLET:\n"
