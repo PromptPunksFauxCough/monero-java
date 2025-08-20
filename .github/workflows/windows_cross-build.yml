@@ -201,8 +201,8 @@ jobs:
 
           # Install Dependencies via Vcpkg
           cd vcpkg
-          ./vcpkg install --triplet x64-mingw-static-release --overlay-triplets=triplets/community --overlay-ports=./ports/unbound
-          #./vcpkg install --triplet x64-mingw-dynamic-release --overlay-triplets=triplets/community --overlay-ports=./ports/unbound
+          ./vcpkg install --triplet x64-mingw-static-release --overlay-triplets=triplets/community --overlay-ports=./ports/unbound --allow-unsupported
+          ./vcpkg install --triplet x64-mingw-dynamic-release --overlay-triplets=triplets/community --overlay-ports=./ports/unbound --allow-unsupported
 
           # List Packages Installed via Vcpkg
           ./vcpkg list
