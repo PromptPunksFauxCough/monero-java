@@ -128,6 +128,7 @@ jobs:
           {
             "name": "monero-dependencies",
             "version": "0.1.0",
+            "builtin-baseline": "501db0f17ef6df184fcdbfbe0f87cde2313b6ab1",
             "dependencies": [
               "boost-chrono",
               "boost-date-time",
@@ -150,10 +151,41 @@ jobs:
               "protobuf",
               "graphviz"
             ],
-            "builtin-baseline": "501db0f17ef6df184fcdbfbe0f87cde2313b6ab1",
             "overrides": [
               {
                 "name": "boost",
+                "version": "1.74.0"
+              },
+              {
+                "name": "boost-chrono",
+                "version": "1.74.0"
+              },
+              {
+                "name": "boost-date-time",
+                "version": "1.74.0"
+              },
+              {
+                "name": "boost-filesystem",
+                "version": "1.74.0"
+              },
+              {
+                "name": "boost-program-options",
+                "version": "1.74.0"
+              },
+              {
+                "name": "boost-regex",
+                "version": "1.74.0"
+              },
+              {
+                "name": "boost-serialization",
+                "version": "1.74.0"
+              },
+              {
+                "name": "boost-system",
+                "version": "1.74.0"
+              },
+              {
+                "name": "boost-thread",
                 "version": "1.74.0"
               }
             ]
