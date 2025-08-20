@@ -150,7 +150,7 @@ jobs:
               "protobuf",
               "graphviz"
             ],
-            "builtin-baseline": "b2a65a6a666e81404098939c381c828230554e56",
+            "builtin-baseline": "382a170a454e9990479b183496eb64082269a845",
             "overrides": [
               {
                 "name": "boost",
