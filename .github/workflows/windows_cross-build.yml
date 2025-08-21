@@ -103,7 +103,12 @@ jobs:
               --output-folder=build \
               --build=missing \
               --settings:build os=Linux --settings:build arch=x86_64 \
-              --settings:host os=Windows --settings:host arch=x86_64 --settings:host compiler=gcc --settings:host compiler.version=11 --settings:host compiler.libcxx=libstdc++ --settings:host build_type=Release
+              --settings:host os=Windows --settings:host arch=x86_64 --settings:host compiler=gcc --settings:host compiler.version=11 --settings:host compiler.libcxx=libstdc++ --settings:host build_type=Release \
+              --conf:host tools.gnu:host_triplet=x86_64-w64-mingw32 \
+              --conf:host 'tools.build:cxxflags=["-std=c++11", "-fPIC"]' \
+              --conf:host 'tools.build:cflags=["-std=c99", "-fPIC"]' \
+              --conf:host 'tools.build:sharedlinkflags=["-pthread"]' \
+              --conf:host 'tools.build:compiler_executables={"c": "x86_64-w64-mingw32-gcc", "cpp": "x86_64-w64-mingw32-g++"}'
 
           # Verify installed packages
           conan list --format=json
@@ -150,7 +155,12 @@ jobs:
               --output-folder=build \
               --build=missing \
               --settings:build os=Linux --settings:build arch=x86_64 \
-              --settings:host os=Windows --settings:host arch=x86_64 --settings:host compiler=gcc --settings:host compiler.version=11 --settings:host compiler.libcxx=libstdc++ --settings:host build_type=Release
+              --settings:host os=Windows --settings:host arch=x86_64 --settings:host compiler=gcc --settings:host compiler.version=11 --settings:host compiler.libcxx=libstdc++ --settings:host build_type=Release \
+              --conf:host tools.gnu:host_triplet=x86_64-w64-mingw32 \
+              --conf:host 'tools.build:cxxflags=["-std=c++11", "-fPIC"]' \
+              --conf:host 'tools.build:cflags=["-std=c99", "-fPIC"]' \
+              --conf:host 'tools.build:sharedlinkflags=["-pthread"]' \
+              --conf:host 'tools.build:compiler_executables={"c": "x86_64-w64-mingw32-gcc", "cpp": "x86_64-w64-mingw32-g++"}'
 
           # Verify installed packages
           conan list --format=json
