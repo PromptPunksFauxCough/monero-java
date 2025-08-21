@@ -215,6 +215,11 @@ jobs:
           # Install Conan 2.x into user space
           python3 -m pip install --upgrade --user "conan>=2.0,<3.0"
 
+          printf "Logs for the asshole copilot\n"
+          echo "PATH=$PATH"
+          type -a conan
+          conan --version
+
           # Force the pip-installed conan into PATH
           export PATH=$HOME/.local/bin:$PATH
           conan --version
