@@ -236,12 +236,44 @@ jobs:
           CMakeToolchain
           EOF
 
-          # Export local unbound recipe only if it’s a valid ConanFile subclass
-          if [ -f "unbound/conanfile.py" ] && grep -q "class .*ConanFile" "unbound/conanfile.py"; then
-            (cd unbound && conan export . --name=unbound --version=1.17.1 --user=local --channel=testing)
-          else
-            echo "Skipping local unbound export (no valid recipe found)."
-          fi
+          # Create unbound Conan Recipe
+          mkdir -p unbound && cd unbound
+          cat > conanfile.py <<'EOF'
+          from conan import ConanFile
+          from conan.tools.cmake import CMake, cmake_layout
+
+          class UnboundConan(ConanFile):
+              name = "unbound"
+              version = "1.17.1"
+              license = "BSD-3-Clause"
+              url = "https://nlnetlabs.nl/projects/unbound/"
+              description = "DNS resolver library"
+              settings = "os", "compiler", "build_type", "arch"
+              generators = "CMakeDeps", "CMakeToolchain"
+              requires = "openssl/3.1.3", "expat/2.5.0"
+
+              def layout(self):
+                  cmake_layout(self)
+
+              def source(self):
+                  self.run("git clone https://github.com/NLnetLabs/unbound.git src")
+                  self.run("cd src && git checkout release-1.17.1")
+
+              def build(self):
+                  cmake = CMake(self)
+                  cmake.configure(source_folder="src")
+                  cmake.build()
+
+              def package(self):
+                  cmake = CMake(self)
+                  cmake.install()
+
+              def package_info(self):
+                  self.cpp_info.libs = ["unbound"]
+          EOF
+
+          conan create . --name=unbound --version=1.17.1
+
 
           # Install all dependencies (native Linux profile, Release)
           conan install conanfile.txt \
