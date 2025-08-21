@@ -221,46 +221,6 @@ jobs:
           # Bootstrap default profile if missing, but don't overwrite an existing one
           conan profile detect --exist-ok
 
-          # Create unbound Conan Recipe
-          mkdir -p unbound && cd unbound
-          cat > conanfile.py <<'EOF'
-          from conan import ConanFile
-          from conan.tools.cmake import CMake, cmake_layout
-          import os
-
-          class UnboundConan(ConanFile):
-              name = "unbound"
-              version = "1.17.1"
-              license = "BSD-3-Clause"
-              url = "https://nlnetlabs.nl/projects/unbound/"
-              description = "DNS resolver library"
-              settings = "os", "compiler", "build_type", "arch"
-              generators = "CMakeDeps", "CMakeToolchain"
-              requires = "openssl/3.1.3", "expat/2.5.0", "zlib/1.2.13"
-
-              def layout(self):
-                  cmake_layout(self)
-
-              def source(self):
-                  self.run("git clone https://github.com/NLnetLabs/unbound.git src")
-                  self.run("cd src && git checkout release-1.17.1")
-
-              def build(self):
-                  cmake = CMake(self)
-                  # Point CMake at the src dir by using path arg in configure()
-                  cmake.configure("src")
-                  cmake.build()
-
-              def package(self):
-                  cmake = CMake(self)
-                  cmake.install()
-
-              def package_info(self):
-                  self.cpp_info.libs = ["unbound"]
-          EOF
-
-          conan create . --name=unbound --version=1.17.1
-
           # Write conanfile.txt with all requirements
           cat <<'EOF' > conanfile.txt
           [requires]
@@ -269,7 +229,6 @@ jobs:
           zeromq/4.3.4
           libsodium/1.0.20
           hidapi/0.12.0
-          unbound/1.17.1
 
           [generators]
           CMakeDeps
@@ -285,6 +244,79 @@ jobs:
 
           # Verify installed packages
           conan list --format=short
+
+#      - name: Install Dependencies via Conan
+#        run: |
+#          # Check Conan Version
+#          conan --version
+#
+#          # Bootstrap default profile if missing, but don't overwrite an existing one
+#          conan profile detect --exist-ok
+#
+#          # Create unbound Conan Recipe
+#          mkdir -p unbound && cd unbound
+#          cat > conanfile.py <<'EOF'
+#          from conan import ConanFile
+#          from conan.tools.cmake import CMake, cmake_layout
+#          import os
+#
+#          class UnboundConan(ConanFile):
+#              name = "unbound"
+#              version = "1.17.1"
+#              license = "BSD-3-Clause"
+#              url = "https://nlnetlabs.nl/projects/unbound/"
+#              description = "DNS resolver library"
+#              settings = "os", "compiler", "build_type", "arch"
+#              generators = "CMakeDeps", "CMakeToolchain"
+#              requires = "openssl/3.1.3", "expat/2.5.0", "zlib/1.2.13"
+#
+#              def layout(self):
+#                  cmake_layout(self)
+#
+#              def source(self):
+#                  self.run("git clone https://github.com/NLnetLabs/unbound.git src")
+#                  self.run("cd src && git checkout release-1.17.1")
+#
+#              def build(self):
+#                  cmake = CMake(self)
+#                  # Point CMake at the src dir by using path arg in configure()
+#                  cmake.configure("src")
+#                  cmake.build()
+#
+#              def package(self):
+#                  cmake = CMake(self)
+#                  cmake.install()
+#
+#              def package_info(self):
+#                  self.cpp_info.libs = ["unbound"]
+#          EOF
+#
+#          conan create . --name=unbound --version=1.17.1
+#
+#          # Write conanfile.txt with all requirements
+#          cat <<'EOF' > conanfile.txt
+#          [requires]
+#          boost/1.74.0
+#          openssl/3.1.3
+#          zeromq/4.3.4
+#          libsodium/1.0.20
+#          hidapi/0.12.0
+#          unbound/1.17.1
+#
+#          [generators]
+#          CMakeDeps
+#          CMakeToolchain
+#          EOF
+#
+#          # Install all dependencies (native Linux profile, Release)
+#          conan install conanfile.txt \
+#            --output-folder=build \
+#            --build=missing \
+#            --profile=default \
+#            --settings=build_type=Release
+#
+#          # Verify installed packages
+#          conan list --format=short
 
       - name: Verify Boost Libraries
         run: |
