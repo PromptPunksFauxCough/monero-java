@@ -207,31 +207,17 @@ jobs:
 #          # List Packages Installed via Vcpkg
 #          ./vcpkg list
 
-      - name: Setup Conan and Install Dependencies
+      - name: Setup Conan 2.x
+        uses: conan-io/setup-conan@v2
+        with:
+          version: 2.x
+          extra-args: |
+            core.non_interactive=True
+            core.telemetry=False
+
+      - name: Install Dependencies
         run: |
-          # Ensure pip itself is up to date
-          python3 -m pip install --upgrade pip
-
-          # Install Conan 2.x into user space
-          python3 -m pip install --upgrade --user "conan>=2.0,<3.0"
-
-          printf "Logs for the asshole copilot\n"
-          echo "PATH=$PATH"
-          type -a conan
-          conan --version
-
-          # Force the pip-installed conan into PATH
-          export PATH=$HOME/.local/bin:$PATH
-          conan --version
-
-          # Disable telemetry & force non-interactive (Conan 2.x syntax)
-          conan config set core.non_interactive=True
-          conan config set core.telemetry=False
-
-          # Bootstrap default profile if missing, but don't overwrite an existing one
-          conan profile detect --exist-ok
-
-          # Write conanfile.txt with all requirements
+          # Write the conanfile.txt with all required packages
           cat <<'EOF' > conanfile.txt
           [requires]
           boost/1.77.0
@@ -246,25 +232,27 @@ jobs:
           libusb/1.0.26
           protobuf/3.21.12
           graphviz/8.0.0
-          unbound/1.17.1
+          unbound/1.17.1@local/testing
 
           [generators]
           CMakeDeps
           CMakeToolchain
           EOF
 
-          # Export local unbound recipe only if it’s a valid ConanFile subclass
+          # Export the local 'unbound' recipe.
+          # We use the explicit path `conan` as the `setup-conan` action adds it to the PATH.
           if [ -f "unbound/conanfile.py" ] && grep -q "class .*ConanFile" "unbound/conanfile.py"; then
-            (cd unbound && conan export . --name=unbound --version=1.17.1 --user=local --channel=testing)
+            conan export unbound --name=unbound --version=1.17.1 --user=local --channel=testing
           else
             echo "Skipping local unbound export (no valid recipe found)."
           fi
 
-          # Install all dependencies (native Linux profile, Release)
+          # Install all dependencies with the correct profiles and build type
           conan install conanfile.txt \
             --output-folder=build \
             --build=missing \
-            --profile=default \
+            --profile:host=default \
+            --profile:build=default \
             --settings=build_type=Release
 
           # Verify installed packages
