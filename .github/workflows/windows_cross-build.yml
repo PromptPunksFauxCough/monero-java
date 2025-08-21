@@ -102,16 +102,16 @@ jobs:
           conan install conanfile.txt \
               --output-folder=build \
               --build=missing \
-              -o boost:without_ALL_MODULES=True \
-              -o boost:without_chrono=False \
-              -o boost:without_date_time=False \
-              -o boost:without_filesystem=False \
-              -o boost:without_program_options=False \
-              -o boost:without_regex=False \
-              -o boost:without_serialization=False \
-              -o boost:without_system=False \
-              -o boost:without_thread=False \
-              -o boost:without_locale=False \
+              -o boost/*:without_ALL_MODULES=True \
+              -o boost/*:without_chrono=False \
+              -o boost/*:without_date_time=False \
+              -o boost/*:without_filesystem=False \
+              -o boost/*:without_program_options=False \
+              -o boost/*:without_regex=False \
+              -o boost/*:without_serialization=False \
+              -o boost/*:without_system=False \
+              -o boost/*:without_thread=False \
+              -o boost/*:without_locale=False \
               --settings:build os=Linux --settings:build arch=x86_64 \
               --settings:host os=Windows --settings:host arch=x86_64 --settings:host compiler=gcc --settings:host compiler.version=11 --settings:host compiler.libcxx=libstdc++ --settings:host build_type=Release \
               --conf:host tools.gnu:host_triplet=x86_64-w64-mingw32 \
