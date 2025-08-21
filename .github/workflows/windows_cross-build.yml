@@ -95,8 +95,15 @@ jobs:
           boost/1.83.0
           openssl/3.1.3
           zeromq/4.3.4
-          libsodium/1.0.20
+          libsodium/1.0.18
           hidapi/0.12.0
+          liblzma/5.2.5
+          readline/8.2
+          expat/2.5.0
+          qttools/6.5.0
+          libusb/1.0.26
+          protobuf/3.21.12
+          graphviz/8.0.0
 
           [generators]
           CMakeDeps
@@ -105,7 +112,17 @@ jobs:
 
           # Install all dependencies (cross-compiled for Windows using mingw, Release)
           conan install conanfile.txt \
+              -o boost/*:without_ALL_MODULES=True \
+              -o boost/*:without_chrono=False \
+              -o boost/*:without_date_time=False \
+              -o boost/*:without_filesystem=False \
+              -o boost/*:without_locale=False \
+              -o boost/*:without_program_options=False \
+              -o boost/*:without_regex=False \
+              -o boost/*:without_serialization=False \
               -o boost/*:without_stacktrace=True \
+              -o boost/*:without_system=False \
+              -o boost/*:without_thread=False \
               --output-folder=build \
               --build=missing \
               --settings:build os=Linux --settings:build arch=x86_64 \
@@ -174,6 +191,176 @@ jobs:
 
           # Verify installed packages
           conan list --format=json
+
+#      - name: Install Dependencies via Conan
+#        run: |
+#          # Check Conan Version
+#          conan --version
+#
+#          # Bootstrap default profile if missing, but don't overwrite an existing one
+#          conan profile detect --exist-ok
+#
+#          # Write conanfile.txt with all requirements
+#          cat <<'EOF' > conanfile.txt
+#          [requires]
+#          boost/1.83.0
+#          openssl/3.1.3
+#          zeromq/4.3.4
+#          libsodium/1.0.18
+#          hidapi/0.12.0
+#          liblzma/5.2.5
+#          readline/8.2
+#          expat/2.5.0
+#          qttools/6.5.0
+#          libusb/1.0.26
+#          protobuf/3.21.12
+#          graphviz/8.0.0
+#          unbound/1.17.1
+#
+#          [generators]
+#          CMakeDeps
+#          CMakeToolchain
+#          EOF
+#
+#          # Install all dependencies (cross-compiled for Windows using mingw, Release)
+#          conan install conanfile.txt \
+#              -o boost/*:without_stacktrace=True \
+#              --output-folder=build \
+#              --build=missing \
+#              --settings:build os=Linux --settings:build arch=x86_64 \
+#              --settings:host os=Windows --settings:host arch=x86_64 \
+#              --settings:host compiler=gcc \
+#              --settings:host compiler.version=11 \
+#              --settings:host compiler.libcxx=libstdc++ \
+#              --settings:host build_type=Release \
+#              --conf:host tools.gnu:host_triplet=x86_64-w64-mingw32 \
+#              --conf:host 'tools.build:sharedlinkflags=["-pthread"]' \
+#              --conf:host 'tools.build:compiler_executables={"c":"x86_64-w64-mingw32-gcc","cpp":"x86_64-w64-mingw32-g++"}'
+#
+#          # Install all dependencies (cross-compiled for Windows using mingw, Release)
+#          conan install conanfile.txt \
+#              -o boost/*:without_ALL_MODULES=True \
+#              -o boost/*:without_chrono=False \
+#              -o boost/*:without_date_time=False \
+#              -o boost/*:without_filesystem=False \
+#              -o boost/*:without_locale=False \
+#              -o boost/*:without_program_options=False \
+#              -o boost/*:without_regex=False \
+#              -o boost/*:without_serialization=False \
+#              -o boost/*:without_stacktrace=True \
+#              -o boost/*:without_system=False \
+#              -o boost/*:without_thread=False \
+#              --output-folder=build \
+#              --build=missing \
+#              --settings:build os=Linux --settings:build arch=x86_64 \
+#              --settings:host os=Windows --settings:host arch=x86_64 \
+#              --settings:host compiler=gcc \
+#              --settings:host compiler.version=11 \
+#              --settings:host compiler.libcxx=libstdc++ \
+#              --settings:host build_type=Release \
+#              --conf:host tools.gnu:host_triplet=x86_64-w64-mingw32 \
+#              --conf:host 'tools.build:sharedlinkflags=["-pthread"]' \
+#              --conf:host 'tools.build:compiler_executables={"c":"x86_64-w64-mingw32-gcc","cpp":"x86_64-w64-mingw32-g++"}'
+#
+#          conan install conanfile.txt \
+#              -o boost/*:without_atomic=True \
+#              -o boost/*:without_chrono=False \
+#              -o boost/*:without_container=True \
+#              -o boost/*:without_context=True \
+#              -o boost/*:without_contract=True \
+#              -o boost/*:without_coroutine=True \
+#              -o boost/*:without_date_time=False \
+#              -o boost/*:without_exception=True \
+#              -o boost/*:without_fiber=True \
+#              -o boost/*:without_filesystem=False \
+#              -o boost/*:without_graph=True \
+#              -o boost/*:without_graph_parallel=True \
+#              -o boost/*:without_iostreams=True \
+#              -o boost/*:without_locale=False \
+#              -o boost/*:without_log=True \
+#              -o boost/*:without_math=True \
+#              -o boost/*:without_mpi=True \
+#              -o boost/*:without_nowide=True \
+#              -o boost/*:without_program_options=False \
+#              -o boost/*:without_python=True \
+#              -o boost/*:without_random=True \
+#              -o boost/*:without_regex=False \
+#              -o boost/*:without_serialization=False \
+#              -o boost/*:without_stacktrace=True \
+#              -o boost/*:without_system=False \
+#              -o boost/*:without_test=True \
+#              -o boost/*:without_thread=False \
+#              -o boost/*:without_timer=True \
+#              -o boost/*:without_type_erasure=True \
+#              -o boost/*:without_wave=True \
+#              --output-folder=build \
+#              --build=missing \
+#              --settings:build os=Linux --settings:build arch=x86_64 \
+#              --settings:host os=Windows --settings:host arch=x86_64 \
+#              --settings:host compiler=gcc \
+#              --settings:host compiler.version=11 \
+#              --settings:host compiler.libcxx=libstdc++ \
+#              --settings:host build_type=Release \
+#              --conf:host tools.gnu:host_triplet=x86_64-w64-mingw32 \
+#              --conf:host 'tools.build:sharedlinkflags=["-pthread"]' \
+#              --conf:host 'tools.build:compiler_executables={"c":"x86_64-w64-mingw32-gcc","cpp":"x86_64-w64-mingw32-g++"}'
+#
+#          # Verify installed packages
+#          conan list --format=json
+#
+#          # Create unbound Conan Recipe
+#          mkdir -p unbound && cd unbound
+#          cat > conanfile.py <<'EOF'
+#          from conan import ConanFile
+#          from conan.tools.cmake import CMake, cmake_layout
+#          import os
+#
+#          class UnboundConan(ConanFile):
+#              name = "unbound"
+#              version = "1.17.1"
+#              license = "BSD-3-Clause"
+#              url = "https://nlnetlabs.nl/projects/unbound/"
+#              description = "DNS resolver library"
+#              settings = "os", "compiler", "build_type", "arch"
+#              generators = "CMakeDeps", "CMakeToolchain"
+#              requires = "openssl/3.1.3", "expat/2.5.0", "zlib/1.2.13"
+#
+#              def layout(self):
+#                  cmake_layout(self)
+#
+#              def source(self):
+#                  self.run("git clone https://github.com/NLnetLabs/unbound.git src")
+#                  self.run("cd src && git checkout release-1.17.1")
+#
+#              def build(self):
+#                  cmake = CMake(self)
+#                  # Point CMake at the src dir by using path arg in configure()
+#                  cmake.configure("src")
+#                  cmake.build()
+#
+#              def package(self):
+#                  cmake = CMake(self)
+#                  cmake.install()
+#
+#              def package_info(self):
+#                  self.cpp_info.libs = ["unbound"]
+#          EOF
+#
+#          conan create . --name=unbound --version=1.17.1 \
+#              --output-folder=build \
+#              --build=missing \
+#              --settings:build os=Linux --settings:build arch=x86_64 \
+#              --settings:host os=Windows --settings:host arch=x86_64 \
+#              --settings:host compiler=gcc \
+#              --settings:host compiler.version=11 \
+#              --settings:host compiler.libcxx=libstdc++ \
+#              --settings:host build_type=Release \
+#              --conf:host tools.gnu:host_triplet=x86_64-w64-mingw32 \
+#              --conf:host 'tools.build:sharedlinkflags=["-pthread"]' \
+#              --conf:host 'tools.build:compiler_executables={"c":"x86_64-w64-mingw32-gcc","cpp":"x86_64-w64-mingw32-g++"}'
+#
+#          # Verify installed packages
+#          conan list --format=json
 
       - name: Verify Boost Libraries
         run: |
