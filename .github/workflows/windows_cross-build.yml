@@ -208,7 +208,7 @@ jobs:
 #          ./vcpkg list
 
       - name: Setup Conan 2.x
-        uses: conan-io/setup-conan@v2
+        uses: conan-io/setup-conan@v1
         with:
           version: 2.x
           extra-args: |
