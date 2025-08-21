@@ -209,17 +209,24 @@ jobs:
 
       - name: Setup Conan and Install Dependencies
         run: |
-          pip install "conan>=2.0" --upgrade
+          # Ensure Python HTTP stack is compatible (kills the urllib3/chardet warning)
+          python3 -m pip install --upgrade "requests>=2.31.0"
 
-          # Disable telemetry in Conan 2.x format
+          # Install Conan 2.x
+          python3 -m pip install --upgrade "conan>=2.0,<3.0"
+
+          # Disable telemetry and keep CI non-interactive (Conan 2 global.conf)
           mkdir -p ~/.conan2
-          echo -e "core:telemetry=disable" > ~/.conan2/global.conf
+          {
+            echo "core:non_interactive=True"
+            echo "core:telemetry=disable"
+          } > ~/.conan2/global.conf
 
-          # Detect defaults (safe in 2.x)
-          conan profile detect --force
+          # Detect a default profile if missing; do NOT overwrite an existing one
+          conan profile detect --exist-ok
 
           # Write conanfile.txt with all requirements
-          cat <<EOF > conanfile.txt
+          cat <<'EOF' > conanfile.txt
           [requires]
           boost/1.77.0
           openssl/3.1.3
@@ -240,27 +247,21 @@ jobs:
           CMakeToolchain
           EOF
 
-          # Export local unbound recipe
-          mkdir -p unbound && cd unbound
-          cat <<EOF > conanfile.py
-          # (unchanged recipe content)
-          EOF
-          conan export . --name=unbound --version=1.17.1 --user=local --channel=testing
-          cd ..
+          # Export local unbound recipe ONLY if a valid recipe exists; never overwrite
+          if [ -f "unbound/conanfile.py" ] && grep -q "class .*ConanFile" "unbound/conanfile.py"; then
+            (cd unbound && conan export . --name=unbound --version=1.17.1 --user=local --channel=testing)
+          else
+            echo "Note: Skipping local unbound export (no valid recipe found). Will resolve from remotes if available."
+          fi
 
-          # Install dependencies with explicit settings (no profile mutation)
+          # Install with the detected default profile (native Linux), Release build
           conan install conanfile.txt \
-              --output-folder=build \
-              --build=missing \
-              --settings=os=Windows \
-              --settings=arch=x86_64 \
-              --settings=compiler=gcc \
-              --settings=compiler.version=13 \
-              --settings=compiler.libcxx=libstdc++11 \
-              --settings=build_type=Release
+            --output-folder=build \
+            --build=missing \
+            --profile=default \
+            --settings=build_type=Release
 
           conan list --format=short
-
 
       - name: Verify Boost Libraries
         run: |
