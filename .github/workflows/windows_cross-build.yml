@@ -215,15 +215,10 @@ jobs:
           mkdir -p ~/.conan2
           echo -e "core:telemetry=disable" > ~/.conan2/global.conf
 
+          # Detect defaults (safe in 2.x)
           conan profile detect --force
 
-          conan profile update settings.os=Windows default
-          conan profile update settings.arch=x86_64 default
-          conan profile update settings.compiler=gcc default
-          conan profile update settings.compiler.version=13 default
-          conan profile update settings.compiler.libcxx=libstdc++11 default
-          conan profile update settings.build_type=Release default
-
+          # Write conanfile.txt with all requirements
           cat <<EOF > conanfile.txt
           [requires]
           boost/1.77.0
@@ -245,26 +240,27 @@ jobs:
           CMakeToolchain
           EOF
 
+          # Export local unbound recipe
           mkdir -p unbound && cd unbound
           cat <<EOF > conanfile.py
           # (unchanged recipe content)
           EOF
-
           conan export . --name=unbound --version=1.17.1 --user=local --channel=testing
           cd ..
 
+          # Install dependencies with explicit settings (no profile mutation)
           conan install conanfile.txt \
               --output-folder=build \
               --build=missing \
-              --profile=default \
-              --settings=arch=x86_64 \
               --settings=os=Windows \
+              --settings=arch=x86_64 \
               --settings=compiler=gcc \
               --settings=compiler.version=13 \
               --settings=compiler.libcxx=libstdc++11 \
               --settings=build_type=Release
 
           conan list --format=short
+
 
       - name: Verify Boost Libraries
         run: |
