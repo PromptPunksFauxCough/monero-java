@@ -100,24 +100,10 @@ jobs:
 
           # Install all dependencies (cross-compiled for Windows using mingw, Release)
           conan install conanfile.txt \
-              -o boost/*:without_ALL_MODULES=True \
-              -o boost/*:without_chrono=False \
-              -o boost/*:without_date_time=False \
-              -o boost/*:without_filesystem=False \
-              -o boost/*:without_program_options=False \
-              -o boost/*:without_regex=False \
-              -o boost/*:without_serialization=False \
-              -o boost/*:without_system=False \
-              -o boost/*:without_thread=False \
-              -o boost/*:without_locale=False \
               --output-folder=build \
               --build=missing \
               --settings:build os=Linux --settings:build arch=x86_64 \
-              --settings:host os=Windows --settings:host arch=x86_64 --settings:host compiler=gcc --settings:host compiler.version=11 --settings:host compiler.libcxx=libstdc++ --settings:host build_type=Release \
-              --conf:host tools.gnu:host_triplet=x86_64-w64-mingw32 \
-              --conf:host 'tools.build:compiler_executables={"c": "x86_64-w64-mingw32-gcc", "cpp": "x86_64-w64-mingw32-g++"}' \
-              --conf:host 'tools.build:cxxflags=["-std=c++11", "-fPIC"]' \
-              --conf:host 'tools.build:cflags=["-std=c99", "-fPIC"]'
+              --settings:host os=Windows --settings:host arch=x86_64 --settings:host compiler=gcc --settings:host compiler.version=11 --settings:host compiler.libcxx=libstdc++ --settings:host build_type=Release
 
           # Verify installed packages
           conan list --format=json
@@ -164,14 +150,52 @@ jobs:
               --output-folder=build \
               --build=missing \
               --settings:build os=Linux --settings:build arch=x86_64 \
-              --settings:host os=Windows --settings:host arch=x86_64 --settings:host compiler=gcc --settings:host compiler.version=11 --settings:host compiler.libcxx=libstdc++ --settings:host build_type=Release \
-              --conf:host tools.gnu:host_triplet=x86_64-w64-mingw32 \
-              --conf:host 'tools.build:compiler_executables={"c": "x86_64-w64-mingw32-gcc", "cpp": "x86_64-w64-mingw32-g++"}' \
-              --conf:host 'tools.build:cxxflags=["-std=c++11", "-fPIC"]' \
-              --conf:host 'tools.build:cflags=["-std=c99", "-fPIC"]'
+              --settings:host os=Windows --settings:host arch=x86_64 --settings:host compiler=gcc --settings:host compiler.version=11 --settings:host compiler.libcxx=libstdc++ --settings:host build_type=Release
 
           # Verify installed packages
           conan list --format=json
+
+#          # Install all dependencies (cross-compiled for Windows using mingw, Release)
+#          conan install conanfile.txt \
+#              -o boost/*:without_atomic=True \
+#              -o boost/*:without_chrono=False \
+#              -o boost/*:without_container=True \
+#              -o boost/*:without_context=True \
+#              -o boost/*:without_contract=True \
+#              -o boost/*:without_coroutine=True \
+#              -o boost/*:without_date_time=False \
+#              -o boost/*:without_exception=True \
+#              -o boost/*:without_fiber=True \
+#              -o boost/*:without_filesystem=False \
+#              -o boost/*:without_graph=True \
+#              -o boost/*:without_graph_parallel=True \
+#              -o boost/*:without_iostreams=True \
+#              -o boost/*:without_locale=False \
+#              -o boost/*:without_log=True \
+#              -o boost/*:without_math=True \
+#              -o boost/*:without_mpi=True \
+#              -o boost/*:without_nowide=True \
+#              -o boost/*:without_program_options=False \
+#              -o boost/*:without_python=True \
+#              -o boost/*:without_random=True \
+#              -o boost/*:without_regex=False \
+#              -o boost/*:without_serialization=False \
+#              -o boost/*:without_stacktrace=True \
+#              -o boost/*:without_system=False \
+#              -o boost/*:without_test=True \
+#              -o boost/*:without_thread=False \
+#              -o boost/*:without_timer=True \
+#              -o boost/*:without_type_erasure=True \
+#              -o boost/*:without_wave=True \
+#              --output-folder=build \
+#              --build=missing \
+#              --settings:build os=Linux --settings:build arch=x86_64 \
+#              --settings:host os=Windows --settings:host arch=x86_64 --settings:host compiler=gcc --settings:host compiler.version=11 --settings:host compiler.libcxx=libstdc++ --settings:host build_type=Release \
+#              --conf:host tools.gnu:host_triplet=x86_64-w64-mingw32 \
+#              --conf:host 'tools.build:cxxflags=["-std=c++11", "-fPIC"]' \
+#              --conf:host 'tools.build:cflags=["-std=c99", "-fPIC"]' \
+#              --conf:host 'tools.build:sharedlinkflags=["-pthread"]' \
+#              --conf:host 'tools.build:compiler_executables={"c": "x86_64-w64-mingw32-gcc", "cpp": "x86_64-w64-mingw32-g++"}'
 #
 ### OLD          
 #      - name: Install Dependencies via Conan
