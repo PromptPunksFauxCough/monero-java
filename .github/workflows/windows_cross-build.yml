@@ -103,7 +103,7 @@ jobs:
 
           # Install all dependencies (cross-compiled for Windows using mingw, Release)
           conan install conanfile.txt \
-              -o boost:without_stacktrace=True
+              -o boost/*:without_stacktrace=True \
               --output-folder=build \
               --build=missing \
               --settings:build os=Linux --settings:build arch=x86_64 \
