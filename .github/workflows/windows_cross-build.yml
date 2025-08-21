@@ -60,6 +60,7 @@ jobs:
 
           sudo update-alternatives --set x86_64-w64-mingw32-g++ $(which x86_64-w64-mingw32-g++-posix)
           sudo update-alternatives --set x86_64-w64-mingw32-gcc $(which x86_64-w64-mingw32-gcc-posix)
+          sudo update-alternatives --set windres $(which x86_64-w64-mingw32-windres)
 
 #      - name: Cache and Install Core Cross-Compile Tools and Utilities
 #        id: cache-apt
