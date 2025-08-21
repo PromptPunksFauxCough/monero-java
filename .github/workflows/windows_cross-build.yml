@@ -102,7 +102,7 @@ jobs:
           expat/2.5.0
           libusb/1.0.26
           protobuf/3.21.12
-          graphviz/8.0.0
+          graphviz/2.44.1
 
           [generators]
           CMakeDeps
