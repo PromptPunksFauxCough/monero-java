@@ -110,7 +110,7 @@ jobs:
 
           # Install all dependencies (cross-compiled for Windows using mingw, Release)
           conan install conanfile.txt \
-              -o boost/without_ALL_MODULES=True \
+              -o boost:without_ALL_MODULES=True \
               -o boost/*:without_chrono=False \
               -o boost/*:without_date_time=False \
               -o boost/*:without_filesystem=False \
