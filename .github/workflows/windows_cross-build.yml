@@ -221,21 +221,6 @@ jobs:
           # Bootstrap default profile if missing, but don't overwrite an existing one
           conan profile detect --exist-ok
 
-          # Write conanfile.txt with all requirements
-          cat <<'EOF' > conanfile.txt
-          [requires]
-          boost/1.74.0
-          openssl/3.1.3
-          zeromq/4.3.4
-          libsodium/1.0.20
-          hidapi/0.12.0
-          unbound/1.17.1
-
-          [generators]
-          CMakeDeps
-          CMakeToolchain
-          EOF
-
           # Create unbound Conan Recipe
           mkdir -p unbound && cd unbound
           cat > conanfile.py <<'EOF'
@@ -275,6 +260,21 @@ jobs:
           EOF
 
           conan create . --name=unbound --version=1.17.1
+
+          # Write conanfile.txt with all requirements
+          cat <<'EOF' > conanfile.txt
+          [requires]
+          boost/1.74.0
+          openssl/3.1.3
+          zeromq/4.3.4
+          libsodium/1.0.20
+          hidapi/0.12.0
+          unbound/1.17.1
+
+          [generators]
+          CMakeDeps
+          CMakeToolchain
+          EOF
 
           # Install all dependencies (native Linux profile, Release)
           conan install conanfile.txt \
