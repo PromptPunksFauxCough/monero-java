@@ -207,17 +207,21 @@ jobs:
 #          # List Packages Installed via Vcpkg
 #          ./vcpkg list
 
-      - name: Setup Conan 2.x
+
+      - name: Install Conan
         uses: conan-io/setup-conan@v1
         with:
           audit_token: ${{ secrets.CONAN_AUDIT_TOKEN }}
-          config_urls: |
-            https://github.com/<org>/conan-config.git
-            https://myrepo.com/conan-config.git
 
-      - name: Install Dependencies
+      - name: Install Dependencies via Conan
         run: |
-          # Write the conanfile.txt with all required packages
+          # Check Conan Version
+          conan --version
+
+          # Bootstrap default profile if missing, but don't overwrite an existing one
+          conan profile detect --exist-ok
+
+          # Write conanfile.txt with all requirements
           cat <<'EOF' > conanfile.txt
           [requires]
           boost/1.77.0
@@ -232,27 +236,25 @@ jobs:
           libusb/1.0.26
           protobuf/3.21.12
           graphviz/8.0.0
-          unbound/1.17.1@local/testing
+          unbound/1.17.1
 
           [generators]
           CMakeDeps
           CMakeToolchain
           EOF
 
-          # Export the local 'unbound' recipe.
-          # We use the explicit path `conan` as the `setup-conan` action adds it to the PATH.
+          # Export local unbound recipe only if it’s a valid ConanFile subclass
           if [ -f "unbound/conanfile.py" ] && grep -q "class .*ConanFile" "unbound/conanfile.py"; then
-            conan export unbound --name=unbound --version=1.17.1 --user=local --channel=testing
+            (cd unbound && conan export . --name=unbound --version=1.17.1 --user=local --channel=testing)
           else
             echo "Skipping local unbound export (no valid recipe found)."
           fi
 
-          # Install all dependencies with the correct profiles and build type
+          # Install all dependencies (native Linux profile, Release)
           conan install conanfile.txt \
             --output-folder=build \
             --build=missing \
-            --profile:host=default \
-            --profile:build=default \
+            --profile=default \
             --settings=build_type=Release
 
           # Verify installed packages
