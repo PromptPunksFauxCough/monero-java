@@ -212,11 +212,20 @@ jobs:
           # Install Conan 2.x cleanly
           pip install "conan>=2.0" --upgrade
 
-          # Disable telemetry (Conan 2.x doesn't support 'config set' anymore)
+          # Disable telemetry
+          mkdir -p ~/.conan2
           echo -e "[general]\ntelemetry=disabled" > ~/.conan2/global.conf
 
           # Detect and configure default profile
           conan profile detect --force
+
+          # Explicitly set cross-build triplet for MinGW
+          conan profile update settings.os=Windows default
+          conan profile update settings.arch=x86_64 default
+          conan profile update settings.compiler=gcc default
+          conan profile update settings.compiler.version=13 default   # <-- match your MinGW GCC
+          conan profile update settings.compiler.libcxx=libstdc++11 default
+          conan profile update settings.build_type=Release default
 
           # Create conanfile.txt with required dependencies
           cat <<EOF > conanfile.txt
@@ -242,7 +251,6 @@ jobs:
 
           # Create custom recipe for Unbound
           mkdir -p unbound && cd unbound
-
           cat <<EOF > conanfile.py
           from conan import ConanFile
           from conan.tools.cmake import CMake, cmake_layout
@@ -278,17 +286,24 @@ jobs:
                   self.cpp_info.libs = ["unbound"]
           EOF
 
-          # Export custom Unbound package (Conan 2.x syntax requires user/channel)
+          # Export custom Unbound package
           conan export . --name=unbound --version=1.17.1 --user=local --channel=testing
           cd ..
 
-          # Install all dependencies using Conan 2.x layout
-          conan install conanfile.txt --output-folder=build --build=missing --profile=default
+          # Install all dependencies in one shot
+          conan install conanfile.txt \
+              --output-folder=build \
+              --build=missing \
+              --profile=default \
+              --settings=arch=x86_64 \
+              --settings=os=Windows \
+              --settings=compiler=gcc \
+              --settings=compiler.version=13 \
+              --settings=compiler.libcxx=libstdc++11 \
+              --settings=build_type=Release
 
-          # List installed packages
+          # List installed packages (short format)
           conan list --format=short
-
-
 
       - name: Verify Boost Libraries
         run: |
