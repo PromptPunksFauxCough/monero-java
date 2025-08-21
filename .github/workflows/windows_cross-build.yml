@@ -98,12 +98,13 @@ jobs:
           CMakeToolchain
           EOF
 
-          # Install all dependencies (native Linux profile, Release)
+          # Install all dependencies (cross-compiled for Windows using mingw, Release)
           conan install conanfile.txt \
             --output-folder=build \
             --build=missing \
-            --profile=default \
-            --settings=build_type=Release
+            --settings:build os=Linux --settings:build arch=x86_64 \
+            --settings:host os=Windows --settings:host arch=x86_64 --settings:host compiler=gcc --settings:host compiler.version=11 --settings:host compiler.libcxx=libstdc++ --settings:host build_type=Release \
+            --conf:host tools.gnu:host_triplet=x86_64-w64-mingw32
 
           # Verify installed packages
           conan list --format=json
@@ -146,7 +147,12 @@ jobs:
                   self.cpp_info.libs = ["unbound"]
           EOF
 
-          conan create . --name=unbound --version=1.17.1
+          conan create . --name=unbound --version=1.17.1 \
+            --output-folder=build \
+            --build=missing \
+            --settings:build os=Linux --settings:build arch=x86_64 \
+            --settings:host os=Windows --settings:host arch=x86_64 --settings:host compiler=gcc --settings:host compiler.version=11 --settings:host compiler.libcxx=libstdc++ --settings:host build_type=Release \
+            --conf:host tools.gnu:host_triplet=x86_64-w64-mingw32
 
           # Verify installed packages
           conan list --format=json
