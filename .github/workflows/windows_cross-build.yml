@@ -9,7 +9,7 @@ on:
 jobs:
   build-windows:
     runs-on: ubuntu-24.04
-    timeout-minutes: 120
+    timeout-minutes: 121
 
     steps:
       - name: Detect Architecture - (All)
