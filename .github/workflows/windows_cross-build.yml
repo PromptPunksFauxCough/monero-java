@@ -135,9 +135,9 @@ jobs:
               --settings:host build_type=Release \
               --conf:host tools.gnu:host_triplet=x86_64-w64-mingw32 \
               --conf:host 'tools.build:sharedlinkflags=["-pthread"]' \
-              --conf:host 'tools.build:compiler_executables={"c":"x86_64-w64-mingw32-gcc","cpp":"x86_64-w64-mingw32-g++","rc":"x86_64-w64-mingw32-windres --sysroot=/usr/x86_64-w64-mingw32","windres":"x86_64-w64-mingw32-windres --sysroot=/usr/x86_64-w64-mingw32"}' \
-              --conf:host tools.build:cflags='["-I/usr/x86_64-w64-mingw32/include"]' \
-              --conf:host tools.build:cxxflags='["-I/usr/x86_64-w64-mingw32/include"]'
+              --conf:host 'tools.build:compiler_executables={"c":"x86_64-w64-mingw32-gcc","cpp":"x86_64-w64-mingw32-g++","windres":"x86_64-w64-mingw32-windres","rc": "x86_64-w64-mingw32-windres -I/usr/x86_64-w64-mingw32/include"}' \
+              --conf:host 'tools.build:cflags=["-I/usr/x86_64-w64-mingw32/include"]' \
+              --conf:host 'tools.build:cxxflags=["-I/usr/x86_64-w64-mingw32/include"]'
 
           # Verify installed packages
           conan list --format=json
@@ -191,7 +191,9 @@ jobs:
               --settings:host build_type=Release \
               --conf:host tools.gnu:host_triplet=x86_64-w64-mingw32 \
               --conf:host 'tools.build:sharedlinkflags=["-pthread"]' \
-              --conf:host 'tools.build:compiler_executables={"c":"x86_64-w64-mingw32-gcc","cpp":"x86_64-w64-mingw32-g++"}'
+              --conf:host 'tools.build:compiler_executables={"c":"x86_64-w64-mingw32-gcc","cpp":"x86_64-w64-mingw32-g++","windres":"x86_64-w64-mingw32-windres","rc": "x86_64-w64-mingw32-windres -I/usr/x86_64-w64-mingw32/include"}' \
+              --conf:host 'tools.build:cflags=["-I/usr/x86_64-w64-mingw32/include"]' \
+              --conf:host 'tools.build:cxxflags=["-I/usr/x86_64-w64-mingw32/include"]'
 
           # Verify installed packages
           conan list --format=json
