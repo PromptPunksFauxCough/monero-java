@@ -209,20 +209,14 @@ jobs:
 
       - name: Setup Conan and Install Dependencies
         run: |
-          # Ensure Python HTTP stack is compatible (kills the urllib3/chardet warning)
-          python3 -m pip install --upgrade "requests>=2.31.0"
-
           # Install Conan 2.x
           python3 -m pip install --upgrade "conan>=2.0,<3.0"
 
-          # Disable telemetry and keep CI non-interactive (Conan 2 global.conf)
-          mkdir -p ~/.conan2
-          {
-            echo "core:non_interactive=True"
-            echo "core:telemetry=disable"
-          } > ~/.conan2/global.conf
+          # Disable telemetry & force non-interactive (safe, documented)
+          conan config set core.non_interactive=True
+          conan config set core.telemetry=False
 
-          # Detect a default profile if missing; do NOT overwrite an existing one
+          # Bootstrap default profile if missing, but don't overwrite existing one
           conan profile detect --exist-ok
 
           # Write conanfile.txt with all requirements
@@ -247,14 +241,14 @@ jobs:
           CMakeToolchain
           EOF
 
-          # Export local unbound recipe ONLY if a valid recipe exists; never overwrite
+          # Export local unbound recipe only if valid
           if [ -f "unbound/conanfile.py" ] && grep -q "class .*ConanFile" "unbound/conanfile.py"; then
             (cd unbound && conan export . --name=unbound --version=1.17.1 --user=local --channel=testing)
           else
-            echo "Note: Skipping local unbound export (no valid recipe found). Will resolve from remotes if available."
+            echo "Skipping local unbound export (no valid recipe found)."
           fi
 
-          # Install with the detected default profile (native Linux), Release build
+          # Install with native Linux profile, Release build
           conan install conanfile.txt \
             --output-folder=build \
             --build=missing \
@@ -262,6 +256,7 @@ jobs:
             --settings=build_type=Release
 
           conan list --format=short
+
 
       - name: Verify Boost Libraries
         run: |
