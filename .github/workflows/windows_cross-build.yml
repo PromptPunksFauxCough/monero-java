@@ -210,10 +210,10 @@ jobs:
       - name: Setup Conan 2.x
         uses: conan-io/setup-conan@v1
         with:
-          version: 2.x
-          extra-args: |
-            core.non_interactive=True
-            core.telemetry=False
+          audit_token: ${{ secrets.CONAN_AUDIT_TOKEN }}
+          config_urls: |
+            https://github.com/<org>/conan-config.git
+            https://myrepo.com/conan-config.git
 
       - name: Install Dependencies
         run: |
