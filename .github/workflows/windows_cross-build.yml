@@ -1,0 +1,274 @@
+name: Windows Cross-Compile (Conan)
+
+on:
+  push:
+    branches: ['**']
+  release:
+    types: [published]
+
+jobs:
+  build-windows:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 120
+
+    steps:
+      - name: Detect Architecture - (All)
+        id: arch
+        run: |
+          echo "ARCH=amd64" >> $GITHUB_ENV
+#          if [[ "${{ inputs.variant }}" == *"arm64"* ]]; then
+#            echo "ARCH=arm64" >> $GITHUB_ENV
+#            echo "OSX_ARCH=arm64" >> $GITHUB_ENV
+#          else
+#            echo "ARCH=amd64" >> $GITHUB_ENV
+#            echo "OSX_ARCH=x86_64" >> $GITHUB_ENV
+#          fi
+
+      - name: Setup JDK - (All)
+        uses: actions/setup-java@v4
+        with:
+          distribution: "liberica"
+          java-version: "21"
+
+      - name: Configure git for Line Endings - (All)
+        run: |
+          git config --global core.autocrlf input
+
+      - name: Checkout Source - (All)
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Use CMake 3.24 - (All)
+        uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "3.24.0"
+
+      - name: Install Core Cross-Compile Tools and Utilities
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            g++-mingw-w64-x86-64 \
+            ccache \
+            git \
+            curl \
+            unzip \
+            make \
+            libudev-dev
+
+#      - name: Cache and Install Core Cross-Compile Tools and Utilities
+#        id: cache-apt
+#        uses: awalsh128/cache-apt-pkgs-action@latest
+#        with:
+#          packages: |
+#            build-essential \
+#            g++-mingw-w64-x86-64 \
+#            ccache \
+#            git \
+#            curl \
+#            unzip \
+#            make \
+#            libudev-dev
+
+      - name: Install Conan
+        uses: conan-io/setup-conan@v1
+        with:
+          audit_token: ${{ secrets.CONAN_AUDIT_TOKEN }}
+
+      - name: Install Dependencies via Conan
+        run: |
+          # Check Conan Version
+          conan --version
+
+          # Bootstrap default profile if missing, but don't overwrite an existing one
+          conan profile detect --exist-ok
+
+          # Write conanfile.txt with all requirements
+          cat <<'EOF' > conanfile.txt
+          [requires]
+          boost/1.74.0
+          openssl/3.1.3
+          zeromq/4.3.4
+          libsodium/1.0.20
+          hidapi/0.12.0
+
+          [generators]
+          CMakeDeps
+          CMakeToolchain
+          EOF
+
+          # Install all dependencies (native Linux profile, Release)
+          conan install conanfile.txt \
+            --output-folder=build \
+            --build=missing \
+            --profile=default \
+            --settings=build_type=Release
+
+          # Verify installed packages
+          conan list --format=json
+
+#          # Create unbound Conan Recipe
+#          mkdir -p unbound && cd unbound
+#          cat > conanfile.py <<'EOF'
+#          from conan import ConanFile
+#          from conan.tools.cmake import CMake, cmake_layout
+#          import os
+#
+#          class UnboundConan(ConanFile):
+#              name = "unbound"
+#              version = "1.17.1"
+#              license = "BSD-3-Clause"
+#              url = "https://nlnetlabs.nl/projects/unbound/"
+#              description = "DNS resolver library"
+#              settings = "os", "compiler", "build_type", "arch"
+#              generators = "CMakeDeps", "CMakeToolchain"
+#              requires = "openssl/3.1.3", "expat/2.5.0", "zlib/1.2.13"
+#
+#              def layout(self):
+#                  cmake_layout(self)
+#
+#              def source(self):
+#                  self.run("git clone https://github.com/NLnetLabs/unbound.git src")
+#                  self.run("cd src && git checkout release-1.17.1")
+#
+#              def build(self):
+#                  cmake = CMake(self)
+#                  # Point CMake at the src dir by using path arg in configure()
+#                  cmake.configure("src")
+#                  cmake.build()
+#
+#              def package(self):
+#                  cmake = CMake(self)
+#                  cmake.install()
+#
+#              def package_info(self):
+#                  self.cpp_info.libs = ["unbound"]
+#          EOF
+#
+#          conan create . --name=unbound --version=1.17.1
+#
+#          # Verify installed packages
+#          conan list --format=json
+#
+### OLD          
+#      - name: Install Dependencies via Conan
+#        run: |
+#          # Check Conan Version
+#          conan --version
+#
+#          # Bootstrap default profile if missing, but don't overwrite an existing one
+#          conan profile detect --exist-ok
+#
+#          # Create unbound Conan Recipe
+#          mkdir -p unbound && cd unbound
+#          cat > conanfile.py <<'EOF'
+#          from conan import ConanFile
+#          from conan.tools.cmake import CMake, cmake_layout
+#          import os
+#
+#          class UnboundConan(ConanFile):
+#              name = "unbound"
+#              version = "1.17.1"
+#              license = "BSD-3-Clause"
+#              url = "https://nlnetlabs.nl/projects/unbound/"
+#              description = "DNS resolver library"
+#              settings = "os", "compiler", "build_type", "arch"
+#              generators = "CMakeDeps", "CMakeToolchain"
+#              requires = "openssl/3.1.3", "expat/2.5.0", "zlib/1.2.13"
+#
+#              def layout(self):
+#                  cmake_layout(self)
+#
+#              def source(self):
+#                  self.run("git clone https://github.com/NLnetLabs/unbound.git src")
+#                  self.run("cd src && git checkout release-1.17.1")
+#
+#              def build(self):
+#                  cmake = CMake(self)
+#                  # Point CMake at the src dir by using path arg in configure()
+#                  cmake.configure("src")
+#                  cmake.build()
+#
+#              def package(self):
+#                  cmake = CMake(self)
+#                  cmake.install()
+#
+#              def package_info(self):
+#                  self.cpp_info.libs = ["unbound"]
+#          EOF
+#
+#          conan create . --name=unbound --version=1.17.1
+#
+#          # Write conanfile.txt with all requirements
+#          cat <<'EOF' > conanfile.txt
+#          [requires]
+#          boost/1.74.0
+#          openssl/3.1.3
+#          zeromq/4.3.4
+#          libsodium/1.0.20
+#          hidapi/0.12.0
+#          unbound/1.17.1
+#
+#          [generators]
+#          CMakeDeps
+#          CMakeToolchain
+#          EOF
+#
+#          # Install all dependencies (native Linux profile, Release)
+#          conan install conanfile.txt \
+#            --output-folder=build \
+#            --build=missing \
+#            --profile=default \
+#            --settings=build_type=Release
+#
+#          # Verify installed packages
+#          conan list --format=short
+
+      - name: Verify Boost Libraries
+        run: |
+          find /usr ${{ github.workspace }}/vcpkg -name '*boost*' | grep -E 'chrono|date_time|filesystem|program_options|regex|serialization|wserialization|system|thread|locale'
+
+      - name: Dependency Introspection
+        run: |
+          find /usr ${{ github.workspace }}/vcpkg -name '*cmake*' -o -name '*ssl*' -o -name '*crypto*' \
+                         -o -name '*zmq*' -o -name '*sodium*' -o -name '*usb*' \
+                         -o -name '*boost*' -o -name '*proto*' -o -name '*unbound*' \
+                         -o -name '*hidapi*' -o -name '*backtrace*' -o -name '*unwind*' \
+                         -o -name '*readline*' | grep -v -e "/man/" -e "/doc/" -e python
+
+      - name: Configure and Build (Portable) - (Windows)
+        run: |
+          mkdir -p build-portable
+          cmake -S . -B build-portable \
+            -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake \
+            -DCMAKE_SYSTEM_PROCESSOR=$ARCH \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DSTATIC_BUILD=ON \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          cmake --build build-portable --parallel 4
+
+      - name: Configure and Build (Dynamic) - (Windows)
+        run: |
+          mkdir -p build-dynamic
+          cmake -S . -B build-dynamic \
+            -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake \
+            -DCMAKE_SYSTEM_PROCESSOR=$ARCH \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_STATIC=OFF \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          cmake --build build-dynamic --parallel 4
+
+      - name: Upload Build Artifacts (Portable) - (Windows)
+        uses: actions/upload-artifact@v4
+        with:
+          name: portable-build
+          path: build-portable
+
+      - name: Upload Build Artifacts (Dynamic) - (Windows)
+        uses: actions/upload-artifact@v4
+        with:
+          name: dynamic-build
+          path: build-dynamic
