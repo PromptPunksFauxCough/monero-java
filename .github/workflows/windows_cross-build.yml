@@ -42,26 +42,12 @@ jobs:
       - name: Use CMake 3.24 - (All)
         uses: lukka/get-cmake@latest
         with:
-          cmakeVersion: "3.24.0"
+          cmakeVersion: "3.31.6"
 
-      - name: Install Core Cross-Compile Tools and Utilities
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            build-essential \
-            g++-mingw-w64-x86-64 \
-            ccache \
-            git \
-            curl \
-            unzip \
-            make \
-            libudev-dev
-
-#      - name: Cache and Install Core Cross-Compile Tools and Utilities
-#        id: cache-apt
-#        uses: awalsh128/cache-apt-pkgs-action@latest
-#        with:
-#          packages: |
+#      - name: Install Core Cross-Compile Tools and Utilities
+#        run: |
+#          sudo apt-get update
+#          sudo apt-get install -y \
 #            build-essential \
 #            g++-mingw-w64-x86-64 \
 #            ccache \
@@ -70,6 +56,20 @@ jobs:
 #            unzip \
 #            make \
 #            libudev-dev
+
+      - name: Cache and Install Core Cross-Compile Tools and Utilities
+        id: cache-apt
+        uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: |
+            build-essential \
+            g++-mingw-w64-x86-64 \
+            ccache \
+            git \
+            curl \
+            unzip \
+            make \
+            libudev-dev
 
       - name: Install Conan
         uses: conan-io/setup-conan@v1
@@ -108,48 +108,48 @@ jobs:
           # Verify installed packages
           conan list --format=json
 
-#          # Create unbound Conan Recipe
-#          mkdir -p unbound && cd unbound
-#          cat > conanfile.py <<'EOF'
-#          from conan import ConanFile
-#          from conan.tools.cmake import CMake, cmake_layout
-#          import os
-#
-#          class UnboundConan(ConanFile):
-#              name = "unbound"
-#              version = "1.17.1"
-#              license = "BSD-3-Clause"
-#              url = "https://nlnetlabs.nl/projects/unbound/"
-#              description = "DNS resolver library"
-#              settings = "os", "compiler", "build_type", "arch"
-#              generators = "CMakeDeps", "CMakeToolchain"
-#              requires = "openssl/3.1.3", "expat/2.5.0", "zlib/1.2.13"
-#
-#              def layout(self):
-#                  cmake_layout(self)
-#
-#              def source(self):
-#                  self.run("git clone https://github.com/NLnetLabs/unbound.git src")
-#                  self.run("cd src && git checkout release-1.17.1")
-#
-#              def build(self):
-#                  cmake = CMake(self)
-#                  # Point CMake at the src dir by using path arg in configure()
-#                  cmake.configure("src")
-#                  cmake.build()
-#
-#              def package(self):
-#                  cmake = CMake(self)
-#                  cmake.install()
-#
-#              def package_info(self):
-#                  self.cpp_info.libs = ["unbound"]
-#          EOF
-#
-#          conan create . --name=unbound --version=1.17.1
-#
-#          # Verify installed packages
-#          conan list --format=json
+          # Create unbound Conan Recipe
+          mkdir -p unbound && cd unbound
+          cat > conanfile.py <<'EOF'
+          from conan import ConanFile
+          from conan.tools.cmake import CMake, cmake_layout
+          import os
+
+          class UnboundConan(ConanFile):
+              name = "unbound"
+              version = "1.17.1"
+              license = "BSD-3-Clause"
+              url = "https://nlnetlabs.nl/projects/unbound/"
+              description = "DNS resolver library"
+              settings = "os", "compiler", "build_type", "arch"
+              generators = "CMakeDeps", "CMakeToolchain"
+              requires = "openssl/3.1.3", "expat/2.5.0", "zlib/1.2.13"
+
+              def layout(self):
+                  cmake_layout(self)
+
+              def source(self):
+                  self.run("git clone https://github.com/NLnetLabs/unbound.git src")
+                  self.run("cd src && git checkout release-1.17.1")
+
+              def build(self):
+                  cmake = CMake(self)
+                  # Point CMake at the src dir by using path arg in configure()
+                  cmake.configure("src")
+                  cmake.build()
+
+              def package(self):
+                  cmake = CMake(self)
+                  cmake.install()
+
+              def package_info(self):
+                  self.cpp_info.libs = ["unbound"]
+          EOF
+
+          conan create . --name=unbound --version=1.17.1
+
+          # Verify installed packages
+          conan list --format=json
 #
 ### OLD          
 #      - name: Install Dependencies via Conan
