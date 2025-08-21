@@ -209,14 +209,21 @@ jobs:
 
       - name: Setup Conan and Install Dependencies
         run: |
-          # Install Conan 2.x
-          python3 -m pip install --upgrade "conan>=2.0,<3.0"
+          # Ensure pip itself is up to date
+          python3 -m pip install --upgrade pip
 
-          # Disable telemetry & force non-interactive (safe, documented)
+          # Install Conan 2.x into user space
+          python3 -m pip install --upgrade --user "conan>=2.0,<3.0"
+
+          # Force the pip-installed conan into PATH
+          export PATH=$HOME/.local/bin:$PATH
+          conan --version
+
+          # Disable telemetry & force non-interactive (Conan 2.x syntax)
           conan config set core.non_interactive=True
           conan config set core.telemetry=False
 
-          # Bootstrap default profile if missing, but don't overwrite existing one
+          # Bootstrap default profile if missing, but don't overwrite an existing one
           conan profile detect --exist-ok
 
           # Write conanfile.txt with all requirements
@@ -241,22 +248,22 @@ jobs:
           CMakeToolchain
           EOF
 
-          # Export local unbound recipe only if valid
+          # Export local unbound recipe only if it’s a valid ConanFile subclass
           if [ -f "unbound/conanfile.py" ] && grep -q "class .*ConanFile" "unbound/conanfile.py"; then
             (cd unbound && conan export . --name=unbound --version=1.17.1 --user=local --channel=testing)
           else
             echo "Skipping local unbound export (no valid recipe found)."
           fi
 
-          # Install with native Linux profile, Release build
+          # Install all dependencies (native Linux profile, Release)
           conan install conanfile.txt \
             --output-folder=build \
             --build=missing \
             --profile=default \
             --settings=build_type=Release
 
+          # Verify installed packages
           conan list --format=short
-
 
       - name: Verify Boost Libraries
         run: |
