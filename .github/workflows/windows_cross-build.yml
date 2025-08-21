@@ -9,7 +9,7 @@ on:
 jobs:
   build-windows:
     runs-on: ubuntu-24.04
-    timeout-minutes: 121
+    timeout-minutes: 120
 
     steps:
       - name: Detect Architecture - (All)
@@ -100,8 +100,10 @@ jobs:
           xz_utils/5.2.5
           readline/8.2
           expat/2.5.0
+          qt/6.5.0
           libusb/1.0.26
           protobuf/3.21.12
+          graphviz/2.44.1
 
           [generators]
           CMakeDeps
@@ -110,7 +112,7 @@ jobs:
 
           # Install all dependencies (cross-compiled for Windows using mingw, Release)
           conan install conanfile.txt \
-              -o boost/*:without_ALL_MODULES=True \
+              -o boost/without_ALL_MODULES=True \
               -o boost/*:without_chrono=False \
               -o boost/*:without_date_time=False \
               -o boost/*:without_filesystem=False \
