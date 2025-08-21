@@ -100,8 +100,6 @@ jobs:
 
           # Install all dependencies (cross-compiled for Windows using mingw, Release)
           conan install conanfile.txt \
-              --output-folder=build \
-              --build=missing \
               -o boost/*:without_ALL_MODULES=True \
               -o boost/*:without_chrono=False \
               -o boost/*:without_date_time=False \
@@ -112,6 +110,8 @@ jobs:
               -o boost/*:without_system=False \
               -o boost/*:without_thread=False \
               -o boost/*:without_locale=False \
+              --output-folder=build \
+              --build=missing \
               --settings:build os=Linux --settings:build arch=x86_64 \
               --settings:host os=Windows --settings:host arch=x86_64 --settings:host compiler=gcc --settings:host compiler.version=11 --settings:host compiler.libcxx=libstdc++ --settings:host build_type=Release \
               --conf:host tools.gnu:host_triplet=x86_64-w64-mingw32 \
