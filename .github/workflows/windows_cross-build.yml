@@ -9,7 +9,7 @@ on:
 jobs:
   build-windows:
     runs-on: ubuntu-24.04
-    timeout-minutes: 121
+    timeout-minutes: 120
 
     steps:
       - name: Detect Architecture - (All)
@@ -103,6 +103,7 @@ jobs:
 
           # Install all dependencies (cross-compiled for Windows using mingw, Release)
           conan install conanfile.txt \
+              -o boost:without_stacktrace=True
               --output-folder=build \
               --build=missing \
               --settings:build os=Linux --settings:build arch=x86_64 \
