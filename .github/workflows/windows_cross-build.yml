@@ -44,24 +44,10 @@ jobs:
         with:
           cmakeVersion: "3.31.6"
 
-#      - name: Install Core Cross-Compile Tools and Utilities
-#        run: |
-#          sudo apt-get update
-#          sudo apt-get install -y \
-#            build-essential \
-#            g++-mingw-w64-x86-64 \
-#            ccache \
-#            git \
-#            curl \
-#            unzip \
-#            make \
-#            libudev-dev
-
-      - name: Cache and Install Core Cross-Compile Tools and Utilities
-        id: cache-apt
-        uses: awalsh128/cache-apt-pkgs-action@latest
-        with:
-          packages: |
+      - name: Install Core Cross-Compile Tools and Utilities
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
             build-essential \
             g++-mingw-w64-x86-64 \
             ccache \
@@ -70,6 +56,20 @@ jobs:
             unzip \
             make \
             libudev-dev
+
+#      - name: Cache and Install Core Cross-Compile Tools and Utilities
+#        id: cache-apt
+#        uses: awalsh128/cache-apt-pkgs-action@latest
+#        with:
+#          packages: |
+#            build-essential \
+#            g++-mingw-w64-x86-64 \
+#            ccache \
+#            git \
+#            curl \
+#            unzip \
+#            make \
+#            libudev-dev
 
       - name: Install Conan
         uses: conan-io/setup-conan@v1
