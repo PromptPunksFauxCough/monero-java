@@ -25,14 +25,14 @@ jobs:
 # 🍎 macOS Builds
 
   build-macos-amd64:
-    if: ${{ true }}
+    if: ${{ false }}
     uses: ./.github/workflows/core-build.yml
     with:
       runner: macos-13
       variant: macos_amd64
 
   build-macos-arm64:
-    if: ${{ true }}
+    if: ${{ false }}
     uses: ./.github/workflows/core-build.yml
     with:
       runner: macos-14
