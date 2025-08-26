@@ -595,8 +595,8 @@ if(BUILD_STATIC)
 #  target_link_libraries(monero-java PRIVATE monero-java-static)
   target_link_libraries(monero-java PRIVATE
     "-Wl,--whole-archive" monero-java-static "-Wl,--no-whole-archive"
-    monero-cpp
-    wallet_api
+    "-Wl,--whole-archive" monero-cpp "-Wl,--no-whole-archive"
+    "-Wl,--whole-archive" wallet_api "-Wl,--no-whole-archive"
     ${Boost_LIBRARIES}
     ${OPENSSL_LIBRARIES}
     ${SODIUM_LIBRARY}
