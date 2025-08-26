@@ -593,10 +593,21 @@ if(BUILD_STATIC)
   add_library(monero-java SHARED "${CMAKE_CURRENT_BINARY_DIR}/monero-java_wrapper.cpp")
 
 #  target_link_libraries(monero-java PRIVATE monero-java-static)
-  target_link_libraries(monero-java "-Wl,--whole-archive" monero-java-static "-Wl,--no-whole-archive")
+  target_link_libraries(monero-java PRIVATE
+    "-Wl,--whole-archive" monero-java-static "-Wl,--no-whole-archive"
+    monero-cpp
+    wallet_api
+    ${Boost_LIBRARIES}
+    ${OPENSSL_LIBRARIES}
+    ${SODIUM_LIBRARY}
+    ${UNBOUND_LIBRARY}
+    ${HIDAPI_LIBRARY}
+    ${LibUSB_LIBRARIES}
+    ${JNI_LIBRARIES}
+    ${EXTRA_LIBRARIES}
+  )
 
   target_link_options(monero-java PRIVATE "-static-libstdc++" "-static-libgcc")
-
 
 else()
 
